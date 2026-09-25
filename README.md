@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./icon.png" alt="SynthiqBots" width="128">
+  <img src="./assets/logo.png" alt="SynthiqBots" width="220">
 </p>
 
 <h1 align="center">SynthiqBots</h1>
@@ -13,7 +13,7 @@ Playerbots that talk in character, understand what you ask, and actually do it.<
   <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-green">
 </p>
 
----
+<p align="center"><img src="./assets/hero.jpg" alt="A party of adventurers talking around a campfire" width="100%"></p>
 
 Playing on your own private server shouldn't mean adventuring alone. With
 [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) you already have a world full of
@@ -28,48 +28,56 @@ the feeling of a party that talks back.
 
 <sub>Sample exchanges below are illustrative — real replies depend on your model and the game state.</sub>
 
-**Talk to any bot you meet.**
+<img src="./assets/icons/icon-whisper.png" width="32" alt=""> **Talk to any bot you meet.**
 Whisper a random playerbot, or say its name in party, raid, say or General — it wakes up with the
 smart brain for ten minutes and answers as itself, from real game data.
 
 > **You:** Brick, what are you wearing and have you got any linen?<br>
 > **Brick:** Mostly mail, the Defias leggings are my pride. Six Linen Cloth in my bags — want them?
 
-**Recruit it on the road.** Invite that bot to your group and it becomes a full companion: it follows
+<p align="center"><img src="./assets/scene-whisper.jpg" alt="Whispering a stranger in the city" width="80%"></p>
+
+<img src="./assets/icons/icon-recruit.png" width="32" alt=""> **Recruit it on the road.** Invite that bot to your group and it becomes a full companion: it follows
 you, obeys follow / stay / attack, joins the tactical loop and takes orders from your party leader.
 Kick it and it goes back to being an ordinary playerbot until you speak to it again.
 
-**A leader who runs the party for you.** One designated bot leads your squad. Tell it what you want in
+<img src="./assets/icons/icon-leader.png" width="32" alt=""> **A leader who runs the party for you.** One designated bot leads your squad. Tell it what you want in
 plain words and it relays the orders to everyone — follow, stay, attack, raid markers, ready checks,
 converting to a raid.
 
 > **You (party):** everyone follow me and mark the boar skull
 
-**Real hands in the world, not just words.** Behind the chat sits an in-game tool server with more
+<p align="center"><img src="./assets/scene-leader.jpg" alt="The party leader orders a charge" width="80%"></p>
+
+<img src="./assets/icons/icon-tools.png" width="32" alt=""> **Real hands in the world, not just words.** Behind the chat sits an in-game tool server with more
 than 200 actions — inventory and gear, loot rules, quests, trading, vendors and repairs, groups and
 guilds, the auction house, travel. When a bot says it did something, it called the game to do it.
 
 > **You:** Sell your grey junk and repair before we head out.
 
-**A leader who suggests what's next.** A while after you log in, the leader may propose something to
+<img src="./assets/icons/icon-quest.png" width="32" alt=""> **A leader who suggests what's next.** A while after you log in, the leader may propose something to
 do — a quest in your log, one nearby, or a dungeon that fits your level — and waits for your answer.
 Say no and it drops it.
 
 > **Leader:** How about we knock out *Fate of Yenniku* before dark?<br>
 > **You:** yes
 
-**Short orders snap, conversations think.** "follow me", "attack", "stay" take a fast path and land in
+<img src="./assets/icons/icon-fast.png" width="32" alt=""> **Short orders snap, conversations think.** "follow me", "attack", "stay" take a fast path and land in
 about a second; longer questions go to the full agent with tools.
 
-**Company between fights.** Nearby companions react to what just happened with short remarks or
+<img src="./assets/icons/icon-campfire.png" width="32" alt=""> **Company between fights.** Nearby companions react to what just happened with short remarks or
 emotes, with limits on chatter so it never floods your screen. Combat itself stays with playerbots,
 which already fights well.
 
-**Command by voice.** Hold a push-to-talk key in the desktop app (macOS / Windows), speak, and the
+<img src="./assets/icons/icon-voice.png" width="32" alt=""> **Command by voice.** Hold a push-to-talk key in the desktop app (macOS / Windows), speak, and the
 leader acts and replies — no alt-tabbing to type.
 
-**A client addon for the buttons you use most.** The **SynthiqBots UI** addon puts playerbot
+<p align="center"><img src="./assets/scene-voice.jpg" alt="Commanding the party by voice" width="80%"></p>
+
+<img src="./assets/icons/icon-addon.png" width="32" alt=""> **A client addon for the buttons you use most.** The **SynthiqBots UI** addon puts playerbot
 commands on a toolbar in your WoW client.
+
+<p align="center"><img src="./addons/synthiqbots-ui/Screenshots/Handout-00-Main-Control.png" alt="SynthiqBots UI toolbar in game" width="60%"></p>
 
 ## How it fits together
 
@@ -162,6 +170,9 @@ The full walkthrough, including party/fleet setup, lives in [docs/gateway.md](do
   the entrance or clear it for you.
 
 ## Credits and license
+
+Artwork in `assets/` is original and AI-generated for this project (OpenAI GPT Image 2.5); it uses no Blizzard assets.
+
 
 SynthiqBots is the public mirror of the Synthiq fork of
 [mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat) by **Dustin Hendrickson**,
