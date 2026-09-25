@@ -1,318 +1,171 @@
 <p align="center">
-  <img src="./icon.png" alt="Ollama Chat Module" title="Ollama Chat Module Icon">
+  <img src="./icon.png" alt="SynthiqBots" width="128">
 </p>
 
+<h1 align="center">SynthiqBots</h1>
 
-# AzerothCore + Playerbots Module: mod-ollama-chat
+<p align="center"><b>Your party has something to say.</b><br>
+Playerbots that talk in character, understand what you ask, and actually do it.</p>
 
-> [!NOTE]
-> **SynthiqBots** — this is the public mirror of the Synthiq fork of
-> [DustinHendrickson/mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat).
-> On top of upstream it adds gateway-routed agent bots (an in-game tool/MCP surface for
-> external LLM agents), a tactical loop, a proactive party leader, bot promotion, the
-> `ops-api` admin MCP and client tooling — see [docs/](docs/). Deployment pipelines and
-> operator-specific configuration are not published; hostnames and IPs in the docs are
-> placeholders.
+<p align="center">
+  <img alt="WotLK 3.3.5a" src="https://img.shields.io/badge/WoW-3.3.5a%20WotLK-8b5a2b">
+  <img alt="AzerothCore" src="https://img.shields.io/badge/AzerothCore-mod--playerbots-2b6cb0">
+  <img alt="License" src="https://img.shields.io/badge/license-AGPL--3.0-green">
+</p>
 
+---
 
-> [!CAUTION]
-> **LLM/AI Disclaimer:** Large Language Models (LLMs) such as those used by this module do not possess intelligence, reasoning, or true understanding. They generate text by predicting the most likely next word based on patterns in their training data—matching vectors, not thinking or comprehension. The quality and relevance of responses depend entirely on the model you use, its training data, and its configuration. Results may vary, and sometimes the output may be irrelevant, nonsensical, or simply not work as expected. This is a fundamental limitation of current AI and LLM technology. Use with realistic expectations.
->
-> This module is also in development and can bog down your server due to the nature of running local LLM. Please proceed with this in mind.
+Playing on your own private server shouldn't mean adventuring alone. With
+[mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) you already have a world full of
+bots — but they don't *listen*. SynthiqBots gives them a brain: you whisper a bot like you'd whisper
+a friend, it answers in character, checks its own bags and quest log before it speaks, and then does
+what you asked. Invite one into your group and it becomes a real companion until you kick it.
 
-> [!IMPORTANT]
-> To fully disable Playerbots normal chatter and random chatter that might interfere with this module, set the following settings in your `playerbots.conf`:
-> - `AiPlayerbot.EnableBroadcasts = 0` (disables loot/quest/kill broadcasts)
-> - `AiPlayerbot.RandomBotTalk = 0` (disables random talking in say/yell/general channels)
-> - `AiPlayerbot.RandomBotEmote = 0` (disables random emoting)
-> - `AiPlayerbot.RandomBotSuggestDungeons = 0` (disables dungeon suggestions)
-> - `AiPlayerbot.EnableGreet = 0` (disables greeting when invited)
-> - `AiPlayerbot.GuildFeedback = 0` (disables guild event chatting)
-> - `AiPlayerbot.RandomBotSayWithoutMaster = 0` (disables bots talking without a master)
+Built for **AzerothCore (WotLK 3.3.5a) + mod-playerbots**, for solo players and small groups who miss
+the feeling of a party that talks back.
 
-## Overview
+## What it does for you
 
-***mod-ollama-chat*** is an AzerothCore module that enhances the Player Bots module by integrating external language model (LLM) support via the Ollama API. This module enables player bots to generate dynamic, in-character chat responses using advanced natural language processing locally on your computer (or remotely hosted). Bots are enriched with personality traits, random chatter triggers, and context-aware replies that mimic the language and lore of World of Warcraft.
+<sub>Sample exchanges below are illustrative — real replies depend on your model and the game state.</sub>
 
-## Features
+**Talk to any bot you meet.**
+Whisper a random playerbot, or say its name in party, raid, say or General — it wakes up with the
+smart brain for ten minutes and answers as itself, from real game data.
 
-- **Ollama LLM Integration:**  
-  Bots generate chat responses by querying an external Ollama API endpoint. This enables natural and contextually appropriate in-game dialogue.
+> **You:** Brick, what are you wearing and have you got any linen?<br>
+> **Brick:** Mostly mail, the Defias leggings are my pride. Six Linen Cloth in my bags — want them?
 
-- **Player Bot Personalities:**  
-  When enabled, each bot is assigned a personality type (e.g., Gamer, Roleplayer, Trickster) that modifies its chat style. Personalities influence prompt generation and result in varied, immersive responses.
+**Recruit it on the road.** Invite that bot to your group and it becomes a full companion: it follows
+you, obeys follow / stay / attack, joins the tactical loop and takes orders from your party leader.
+Kick it and it goes back to being an ordinary playerbot until you speak to it again.
 
-- **Context-Aware Prompt Generation:**  
-  The module gathers extensive context about both the bot and the interacting player—including class, race, role, faction, guild, and more—to generate prompts for the LLM. A comprehensive WoW cheat sheet is appended to every prompt to ensure the LLM replies with accurate lore, terminology, and in-character language spanning Vanilla WoW, The Burning Crusade, and Wrath of the Lich King.
+**A leader who runs the party for you.** One designated bot leads your squad. Tell it what you want in
+plain words and it relays the orders to everyone — follow, stay, attack, raid markers, ready checks,
+converting to a raid.
 
-- **Random Chatter:**  
-  Bots can periodically initiate random, environment-based chat when a real player is nearby. This feature adds an extra layer of immersion to the game world.
+> **You (party):** everyone follow me and mark the boar skull
 
-- **Chat Memory (Conversation History):**  
-  Bots now have configurable short-term chat memory. Recent conversations between each player and bot are stored and included as context in every LLM prompt, giving responses better context and continuity.
+**Real hands in the world, not just words.** Behind the chat sits an in-game tool server with more
+than 200 actions — inventory and gear, loot rules, quests, trading, vendors and repairs, groups and
+guilds, the auction house, travel. When a bot says it did something, it called the game to do it.
 
-  Bots now recall your recent interactions—responses will reflect the last several lines of chat with each player.
+> **You:** Sell your grey junk and repair before we head out.
 
-- **Blacklist for Playerbot Commands:**  
-  A configurable blacklist prevents bots from responding to chat messages that start with common playerbot command prefixes, ensuring that administrative commands are not inadvertently processed. Additional commands can be appended via the configuration.
+**A leader who suggests what's next.** A while after you log in, the leader may propose something to
+do — a quest in your log, one nearby, or a dungeon that fits your level — and waits for your answer.
+Say no and it drops it.
 
-- **Asynchronous Response Handling:**  
-  Chat responses are generated on separate threads to avoid blocking the main server loop, ensuring smooth server performance.
+> **Leader:** How about we knock out *Fate of Yenniku* before dark?<br>
+> **You:** yes
 
-- **Live Configuration & Personality Reload:**  
-  Reload the module’s config and personality packs in-game or from the server console, without restarting.
+**Short orders snap, conversations think.** "follow me", "attack", "stay" take a fast path and land in
+about a second; longer questions go to the full agent with tools.
 
-- **Event-Based Chatter:**  
-  Player bots now comment on key in-game events such as quest completion, rare loot, deaths, PvP kills, leveling up, duels, learning spells, and achievements. Remarks are context-aware, immersive, and personality-driven, making the world feel much more alive.
+**Company between fights.** Nearby companions react to what just happened with short remarks or
+emotes, with limits on chatter so it never floods your screen. Combat itself stays with playerbots,
+which already fights well.
 
-- **Party-Only Bot Responses:**  
-  When enabled, bots will only respond to real player messages and events when they are in the same non-raid party. This helps reduce chat spam while maintaining full bot-to-bot communication within parties for immersive group interactions.
+**Command by voice.** Hold a push-to-talk key in the desktop app (macOS / Windows), speak, and the
+leader acts and replies — no alt-tabbing to type.
 
-- **Think Mode Support:**  
-  Bots can leverage LLM models that have reasoning/think modes. Enable internal reasoning for models that support it by setting `OllamaChat.ThinkModeEnableForModule = 1` in **mod-ollama-chat.conf**. When enabled, the API request includes the `think` flag and the bot omits all `thinking` responses from its final reply.
+**A client addon for the buttons you use most.** The **SynthiqBots UI** addon puts playerbot
+commands on a toolbar in your WoW client.
 
-- **Live Reload for Personalities and Settings:**  
-  Instantly reload all mod-ollama-chat configuration and personality packs in-game using the `.ollama reload` command with a GM level account or use `ollama reload` from the server console. No server restart required—updates to `.conf` or personality packs (`.sql` files) are applied immediately.
+## How it fits together
 
-## Installation
+```
+ your chat / voice
+        │
+        ├── short command ──► fast lane (Ollama or any OpenAI-compatible model)
+        │                         classifier · tactical loop · proactive checks
+        │
+        └── conversation ───► smart lane (an agent gateway you run)
+                                  │
+                                  ▼
+                     in-game MCP tool server (200+ actions)
+                                  │
+                                  ▼
+                     mod-playerbots: movement, combat, looting
+```
 
-> [!IMPORTANT]
-> **Cross-Platform Support**: This module now uses cpp-httplib (header-only) instead of curl, eliminating compilation issues on Windows and simplifying installation on all platforms.
+- **Fast lane** — cheap, frequent calls: routing short commands, the per-bot tactical tick, deciding
+  whether the leader should speak up. Local [Ollama](https://ollama.com) or any OpenAI-compatible
+  endpoint (e.g. DeepSeek). An optional [TypeSafe](https://typesafe.ai) decision tier can answer the
+  simple yes/no calls even faster.
+- **Smart lane** — an OpenAI-compatible agent gateway (OpenClaw / Synthiq-style) that holds the
+  conversation and drives the game through the embedded MCP server.
+- **Playerbots** keeps doing what it does best: fighting, following, looting.
 
-1. **Prerequisites:**
-   - Ensure you have liyunfan1223's AzerothCore (https://github.com/liyunfan1223/azerothcore-wotlk) installation with the Player Bots (https://github.com/liyunfan1223/mod-playerbots) module enabled.
-   - The module depends on:
-     - **fmtlib** (https://github.com/fmtlib/fmt) - For string formatting
-     - **nlohmann/json** (https://github.com/nlohmann/json) - For JSON processing (**bundled with module** - no installation needed)
-     - cpp-httplib (https://github.com/yhirose/cpp-httplib) - Header-only HTTP library (included, no installation needed)
-     - Ollama LLM support – set up a local instance of the Ollama API server with the model of your choice. More details at https://ollama.com
+## What you need
 
-2. **Install Dependencies:**
+- An AzerothCore **mod-playerbots** fork server
+  ([mod-playerbots/azerothcore-wotlk](https://github.com/mod-playerbots/azerothcore-wotlk)) with
+  [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots) and a WotLK 3.3.5a client.
+- A fast-lane model: local Ollama, or an API key for an OpenAI-compatible provider.
+- For conversations with tools: an agent gateway that speaks the OpenAI chat API and can call MCP
+  tools. Without one you still get the fast lane, but the talking companions need the gateway.
 
-   ### Windows (vcpkg):
+This is a server module. It needs a rebuild of your worldserver and some configuration — there is no
+one-click install.
+
+## Quick start
+
+1. Clone into your AzerothCore source tree (the folder name matters):
    ```bash
-   vcpkg install fmt
-   ```
-
-   ### Ubuntu/Debian:
-   ```bash
-   sudo apt update
-   sudo apt install libfmt-dev
-   ```
-
-   ### CentOS/RHEL/Fedora:
-   ```bash
-   sudo yum install fmt-devel  # or dnf install fmt-devel
-   ```
-
-   ### macOS (Homebrew):
-   ```bash
-   brew install fmt
-   ```
-
-   ### Arch Linux:
-   ```bash
-   sudo pacman -S fmt
-   ```
-
-3. **Clone the Module:**
-   ```bash
-   cd /path/to/azerothcore/modules
+   cd azerothcore-wotlk/modules
    git clone https://github.com/synthiq-ai/synthiqbots.git mod-ollama-chat
    ```
-
-4. **Recompile AzerothCore:**
-   ```bash
-   cd /path/to/azerothcore
-   mkdir build && cd build
-   cmake ..
-   make -j$(nproc)
-   ```
-
-5. **Configuration:**
-   Copy the default configuration file to your server configuration directory and change to match your setup (if not already done):
-   ```bash
-   cp /path/to/azerothcore/modules/mod-ollama-chat/mod-ollama-chat.conf.dist /path/to/azerothcore/etc/config/mod-ollama-chat.conf
-   ```
-
-6. **Restart the Server:**
-   ```bash
-   ./worldserver
-   ```
-
-## Setting up Ollama Server
-
-This module requires a running Ollama server to function. Ollama allows you to run large language models locally on your machine.
-
-### Installing Ollama
-
-Download and install Ollama from [ollama.com](https://ollama.com). It supports Windows, macOS, and Linux.
-
-- **Windows/macOS:** Download the installer from the website and run it.
-- **Linux:** Follow the installation instructions for your distribution (e.g., `curl -fsSL https://ollama.com/install.sh | sh`).
-
-### Starting the Ollama Server
-
-Once installed, start the Ollama server:
-
-```bash
-ollama serve
-```
-
-This will start the server on `http://localhost:11434` by default.
-
-### Running Ollama Across the Network
-
-If you want to run the Ollama server on a different computer than your AzerothCore server, set the `OLLAMA_HOST` environment variable to `0.0.0.0` before starting the server:
-
-```bash
-export OLLAMA_HOST=0.0.0.0
-ollama serve
-```
-
-This binds the server to all network interfaces, allowing connections from other machines on your network. Update the `OllamaChat.ApiEndpoint` in `mod-ollama-chat.conf` to use the IP address of the machine running Ollama (e.g., `http://192.168.100.10:11434`).
-
-> [!WARNING]
-> Exposing Ollama to the network may pose security risks. Ensure your firewall allows traffic on port 11434 only from trusted networks, and consider additional security measures if exposing to the internet.
-
-### Pulling a Model
-
-Before using the module, pull a model that the bots will use for generating responses. For example, to pull the Llama 3.2 1B model:
-
-```bash
-ollama pull llama3.2:1b
-```
-
-You can find available models at [ollama.com/library](https://ollama.com/library). Choose a model that fits your hardware capabilities.
-
-### Connecting the Module
-
-The module connects to the Ollama API via the configuration in `mod-ollama-chat.conf`. The default endpoint is `http://localhost:11434`. If your Ollama server is running on a different host or port, update the `OllamaChat.ApiEndpoint` setting.
-
-### Checking if Ollama is Running
-
-To verify that the Ollama server is running and accessible, you can test the API:
-
-```bash
-curl http://localhost:11434/api/tags
-```
-
-This should return a JSON response listing available models. If you get a connection error, ensure the server is started and the endpoint is correct.
-
-## Configuration Options
-
-> For a complete list of all available configuration options with comments and defaults, see `mod-ollama-chat.conf.dist` included in this repository.
-
-## Text Commands
-
-The module provides several in-game text commands for administrators (Game Masters) to manage and monitor the Ollama chat functionality. All commands require **SEC_ADMINISTRATOR** security level (GM level 3 or higher).
-
-### `.ollama reload`
-Reloads the module's configuration from `mod-ollama-chat.conf` without restarting the server. Also reloads personality packs and sentiment data.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:** `.ollama reload`
-- **Console Equivalent:** `ollama reload`
-
-### `.ollama sentiment view [bot_name] [player_name]`
-Displays sentiment tracking data between bots and players.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:**
-  - `.ollama sentiment view` - Shows all sentiment data
-  - `.ollama sentiment view BotName` - Shows sentiment data for a specific bot
-  - `.ollama sentiment view BotName PlayerName` - Shows sentiment between specific bot and player
-- **Console Equivalent:** `ollama sentiment view [bot] [player]`
-
-### `.ollama sentiment set <bot_name> <player_name> <value>`
-Manually sets the sentiment value between a bot and player (0.0 to 1.0).
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:** `.ollama sentiment set BotName PlayerName 0.8`
-- **Console Equivalent:** `ollama sentiment set <bot> <player> <value>`
-
-### `.ollama sentiment reset [bot_name] [player_name]`
-Resets sentiment data to default values.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:**
-  - `.ollama sentiment reset` - Resets all sentiment data
-  - `.ollama sentiment reset BotName` - Resets all sentiment data for a specific bot
-  - `.ollama sentiment reset BotName PlayerName` - Resets sentiment between specific bot and player
-- **Console Equivalent:** `ollama sentiment reset [bot] [player]`
-
-### `.ollama personality get <bot_name>`
-Displays the current personality assigned to a bot.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:** `.ollama personality get BotName`
-- **Console Equivalent:** `ollama personality get <bot>`
-
-### `.ollama personality set <bot_name> <personality>`
-Manually assigns a personality to a bot.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:** `.ollama personality set BotName Gamer`
-- **Console Equivalent:** `ollama personality set <bot> <personality>`
-
-### `.ollama personality list`
-Lists all available personalities and their descriptions.
-- **Security Level:** SEC_ADMINISTRATOR
-- **Usage:** `.ollama personality list`
-- **Console Equivalent:** `ollama personality list`
-
-> [!NOTE]
-> All commands can also be executed from the server console by replacing the leading dot (.) with the command prefix used in your console (typically none or a custom prefix).
-
-## How It Works
-
-1. **Chat Filtering and Triggering**  
-   When a player (or bot) sends a chat message, the module checks the message's type, distance, and if it starts with any configured blacklist command prefix. If party restrictions are enabled, only bots in the same non-raid party as the real player can respond. Only eligible messages in range and not matching the blacklist will trigger a bot response.
-
-2. **Bot Selection**  
-   The system gathers all bots within the relevant distance, determines eligibility based on player/bot reply chance, and caps responses per message using `MaxBotsToPick` and related settings.
-
-3. **Prompt Assembly**  
-   For each reply, a prompt is assembled by combining configurable templates with live in-game context: bot/player class, race, gender, role/spec, faction, guild, level, zone, gold, group, environment info, personality, and if enabled, recent chat history between that player and the bot.
-
-4. **LLM Request**  
-   The prompt is sent to the Ollama API using the configured model and parameters. All LLM requests run asynchronously, ensuring no lag or blocking of the server.
-
-5. **Response Routing**  
-   Bot responses are routed back through the appropriate chat channel in game, whether it’s say, yell, party or general.
-
-6. **Personality Management**  
-   If RP personalities are enabled, each bot uses its assigned personality template. Personality definitions can be changed on the fly and reloaded live—no server restart required.
-
-7. **Random & Event-Based Chatter**  
-   In addition to responding to direct chat, bots will occasionally generate random environment-aware lines when real players are nearby, and will also react to key in-game events (e.g., PvP/PvE kills, loot, deaths, quests, duels, level-ups, achievements, using objects) using context-specific templates and personalities.
-
-8. **Live Reloading**  
-   You can hot-reload the module config and personality packs in-game using the `.ollama reload` GM command or from the server console. All changes take effect immediately without requiring a restart.
-
-9. **Fully Configurable**  
-   All settings—reply logic, distances, frequencies, blacklist, prompt templates, chat history, personalities, random/event chatter, LLM params, and more—are controlled via `mod-ollama-chat.conf` and can be adjusted and reloaded live at any time.
-
-## Personality Packs
-
-`mod-ollama-chat` supports Personality Packs, which are collections of personality templates that define how bots roleplay and interact in-game.
-
-- To use a Personality Pack, download or create a `.sql` file named in the format `YYYY_MM_DD_personality_pack_NAME.sql`.
-
-- Place the `.sql` file in `modules/mod-ollama-chat/data/sql/characters/updates/`.
-
-- The module will automatically detect and apply any new Personality Packs when the server starts or updates—no manual SQL import required.
-
-Want to create your own pack or download packs made by the community?  
-
-Visit the [Personality Packs Discussion Board](https://github.com/DustinHendrickson/mod-ollama-chat/discussions)
-
-## Debugging
-
-For detailed logs of bot responses, prompt generation, and LLM interactions, enable debug mode via your server logs or module-specific settings.
-
-
-
-## License
-
-This module is released under the GNU Affero General Public License v3.0 (see [LICENSE](LICENSE)), as is the upstream module.
-
-## Contribution
-
-Developed by Dustin Hendrickson
-
-Pull requests, bug reports, and feature suggestions are welcome. Please adhere to AzerothCore's coding standards and guidelines when submitting contributions.
+2. Rebuild the worldserver as usual. Dependencies and the Docker build:
+   [docs/agent-context/BUILD.md](docs/agent-context/BUILD.md).
+3. Copy `conf/mod_ollama_chat.conf.dist` to your server's `etc/modules/mod_ollama_chat.conf`.
+4. Quiet playerbots' own chatter in `playerbots.conf` so the two don't talk over each other:
+   `AiPlayerbot.EnableBroadcasts`, `RandomBotTalk`, `RandomBotEmote`, `RandomBotSuggestDungeons`,
+   `EnableGreet`, `GuildFeedback`, `RandomBotSayWithoutMaster` = `0`.
+5. Point the fast lane at your model: `OllamaChat.Tactical.Url` and
+   `OllamaChat.Gateway.OllamaClassifier.Url` — an Ollama `/api/generate` URL, or an OpenAI-compatible
+   `/chat/completions` URL plus `OllamaChat.OpenAiCompat.ApiKey`.
+6. Turn on the smart lane: `OllamaChat.Gateway.Enable`, the bots that get it
+   (`Gateway.BotGUIDs` + a `gateway_overrides.json` with your gateway URL and token), your account in
+   `Gateway.WhitelistAccountIds`, and `OllamaChat.Mcp.*` so your gateway can reach the tool server.
+7. Start the server (or `.ollama reload` in game) and check `.ollama gateway status`. Whisper your bot.
+
+The full walkthrough, including party/fleet setup, lives in [docs/gateway.md](docs/gateway.md) and
+[docs/autonomous-bots.md](docs/autonomous-bots.md).
+
+## Go further
+
+| You want | Read |
+|---|---|
+| Talking companions, gateway setup, per-bot routing | [docs/gateway.md](docs/gateway.md) |
+| Any bot you whisper or invite gets the brain | [docs/bot-promotion.md](docs/bot-promotion.md) |
+| A leader bot running a party of bots | [docs/autonomous-bots.md](docs/autonomous-bots.md) |
+| The per-bot tactical loop | [docs/tactical.md](docs/tactical.md) |
+| The leader proposing quests and dungeons | [docs/proactive-leader.md](docs/proactive-leader.md) |
+| Voice commands and the desktop app | [docs/voice-command.md](docs/voice-command.md), [docs/voice-command-app.md](docs/voice-command-app.md) |
+| The SynthiqBots UI client addon | [docs/synthiqbots-ui.md](docs/synthiqbots-ui.md) |
+| The TypeSafe decision tier | [docs/jev.md](docs/jev.md) |
+| Server-admin MCP (logs, DB, containers) | [docs/ops-api.md](docs/ops-api.md), [docs/admin-mcp.md](docs/admin-mcp.md) |
+| Architecture and source layout | [docs/agent-context/ARCHITECTURE.md](docs/agent-context/ARCHITECTURE.md) |
+| Every setting | [`conf/mod_ollama_chat.conf.dist`](conf/mod_ollama_chat.conf.dist) |
+
+## Honest limits
+
+- **Not every bot on the realm talks.** Only the bots you configure, bots you whisper or name (up to a
+  small cap, for ten minutes), bots in your group, and a few nearby companions for ambient remarks.
+- **LLMs make mistakes.** Bots check real game state through tools, but a model can still misread a
+  request or say something odd. Pick a capable model for the smart lane.
+- **It is not free by default.** Local Ollama costs nothing but hardware; hosted models and agent
+  gateways bill per call. The fast lane runs often, so choose it with that in mind.
+- **Combat is playerbots.** SynthiqBots decides *what* to do and talks about it; it doesn't replace
+  playerbots' fighting AI.
+- **Dungeon suggestions are suggestions.** The leader proposes and follows you; it doesn't walk you to
+  the entrance or clear it for you.
+
+## Credits and license
+
+SynthiqBots is the public mirror of the Synthiq fork of
+[mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat) by **Dustin Hendrickson**,
+which brought LLM chat to playerbots in the first place. It builds on
+[AzerothCore](https://www.azerothcore.org) and [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots).
+
+Released under the **GNU Affero General Public License v3.0** — see [LICENSE](LICENSE).
