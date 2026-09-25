@@ -1,0 +1,148 @@
+name: Build voice-command app
+
+# Path-filtered: only fires when the voice-command client or this workflow
+# changes. We don't want every C++/prompt tweak rebuilding the installers.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/voice-command/**'
+      - '.github/workflows/build-voice-command.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/voice-command/**'
+      - '.github/workflows/build-voice-command.yml'
+  workflow_dispatch:
+
+permissions:
+  # contents: write lets the release job recreate the rolling tag.
+  contents: write
+
+concurrency:
+  # Newer builds win; don't pile up parallel installer publishes.
+  group: build-voice-command-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Package (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            artifact: voice-command-macos
+            out: WoW-Voice-Command.dmg
+          - os: windows-latest
+            artifact: voice-command-windows
+            out: WoWVoiceCommand.exe
+    defaults:
+      run:
+        working-directory: tools/voice-command
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # create-dmg makes the pretty drag-to-Applications DMG; dmgbuild is the
+      # pip fallback already in requirements-build.txt.
+      - name: Install create-dmg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install create-dmg
+        working-directory: ${{ github.workspace }}
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          # cmake/ninja help any source-built native wheels (e.g. pywhispercpp).
+          pip install cmake ninja
+          pip install -r requirements-build.txt
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: bash packaging/build-macos.sh
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File packaging/build-windows.ps1
+
+      - name: Compute SHA256 (macOS)
+        if: runner.os == 'macOS'
+        run: shasum -a 256 "dist/${{ matrix.out }}" | tee "dist/${{ matrix.out }}.sha256"
+
+      - name: Compute SHA256 (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $h = Get-FileHash "dist/${{ matrix.out }}" -Algorithm SHA256
+          "$($h.Hash.ToLower())  ${{ matrix.out }}" | Tee-Object "dist/${{ matrix.out }}.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            tools/voice-command/dist/${{ matrix.out }}
+            tools/voice-command/dist/${{ matrix.out }}.sha256
+          retention-days: 90
+
+  release:
+    name: Publish rolling release
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download built installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release assets + notes
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find artifacts -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.sha256' \) \
+            -exec cp {} dist/ \;
+          ls -la dist/
+          {
+            echo "Rolling release built from \`main\` by CI."
+            echo ""
+            echo "**Commit**: [\`${GITHUB_SHA}\`](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA})"
+            echo "**Built at**: $(date -u +"%Y-%m-%d %H:%M UTC")"
+            echo ""
+            echo "## Downloads"
+            echo "- **macOS**: \`WoW-Voice-Command.dmg\` — open, drag to Applications. First launch: right-click → Open (unsigned). Grant Microphone + Accessibility."
+            echo "- **Windows**: \`WoWVoiceCommand.exe\` — portable, no install. SmartScreen → More info → Run anyway (unsigned)."
+            echo ""
+            echo "Setup + first-run model download: see [\`docs/voice-command-app.md\`](https://github.com/${{ github.repository }}/blob/main/docs/voice-command-app.md)."
+            echo ""
+            echo "## SHA256"
+            echo '```'
+            cat dist/*.sha256 || true
+            echo '```'
+            echo ""
+            echo "Auto-published on every merge to \`main\` touching \`tools/voice-command/**\`. The tag re-anchors each time, so the URL is stable but the SHA moves."
+          } > /tmp/notes.md
+          cat /tmp/notes.md
+
+      - name: Publish rolling release voice-command-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release delete voice-command-latest --yes --cleanup-tag || true
+          gh release create voice-command-latest \
+            --target "${GITHUB_SHA}" \
+            --title "WoW Voice Command (latest from main)" \
+            --notes-file /tmp/notes.md \
+            --prerelease \
+            dist/*

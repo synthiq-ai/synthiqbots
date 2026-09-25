@@ -1,0 +1,53 @@
+# synthiq-feedback daemon — example configuration.
+#
+# Copy this file to:
+#   Windows: %APPDATA%\synthiq-feedback\config.toml
+#   macOS:   ~/Library/Application Support/synthiq-feedback/config.toml
+#   Linux:   ~/.config/synthiq-feedback/config.toml
+# and fill in the four required fields below.
+
+# Where the ops-api lives. Public TLS preferred; LAN fast-path when on game-host.
+api_url = "https://ops.wow.example.com"
+
+# Mirrors OPS_BEARER_TOKEN in <your secrets .env> on game-host.
+# Rotate the two together if compromised.
+bearer_token = "PASTE_OPS_BEARER_TOKEN_HERE"
+
+# Path to your WoW client install — the directory that contains WoW.exe,
+# WTF/, Screenshots/, Interface/. Forward or back slashes both work.
+wow_root = "C:/Games/World of Warcraft 3.3.5a"
+
+# Optional. The daemon auto-picks the only account dir under WTF/Account/
+# when this is empty. Set explicitly if you have multiple WoW accounts on
+# the same client.
+# account_name = "MAINACCOUNT"
+
+# How often (ms) to scan for new SavedVariables entries. SavedVariables
+# only flush on /reload or logout — check at most every 5s by default.
+poll_interval_ms = 5000
+
+# ± window (s) for matching a feedback entry to a Screenshots/ file by
+# mtime. Screenshot() is async, so the file lands a few hundred ms after
+# the addon's recorded timestamp. 15s is generous.
+screenshot_match_window_sec = 15
+
+# Set to true to log what would be uploaded without making HTTP calls.
+# Useful for first-run sanity checks.
+# dry_run = true
+
+# Optional override for the dedup state file path. Defaults to
+# %APPDATA%\synthiq-feedback\state.json (or the OS equivalent).
+# state_file_path = ""
+
+# --- Observer video clips (Phase 3) -----------------------------------------
+# Only needed for request_observer_clip. Screenshots work without any of this.
+
+# Path to ffmpeg. Empty resolves via PATH, then ffmpeg.exe beside the daemon.
+# Install with: winget install Gyan.FFmpeg
+# ffmpeg_path = "C:/tools/ffmpeg/bin/ffmpeg.exe"
+
+# The WoW window title passed to ffmpeg's gdigrab (-i title=...). WoW must run
+# WINDOWED or BORDERLESS — exclusive fullscreen cannot be captured. If your GPU
+# driver returns black frames for the window grab, the daemon automatically
+# retries with a full-desktop grab.
+# capture_window_title = "World of Warcraft"

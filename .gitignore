@@ -1,0 +1,88 @@
+# Compiled Object files
+*.o
+*.obj
+
+# Compiled Binary files
+*.exe
+*.out
+*.app
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Static Libraries
+*.lib
+*.a
+
+# Dynamic Libraries
+*.dll
+*.so
+*.dylib
+
+# Debug files
+*.dSYM/
+*.stackdump
+
+# Build directories
+/build/
+/bin/
+/Debug/
+/Release/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Qt-specific files
+*.moc
+*.qrc
+*.qmlc
+*.pro.user
+*.autosave
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Backup files
+*~
+*.bak
+*.swp
+*.tmp
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+.vscode/
+
+# Claude Code local settings
+.claude/
+
+# MCP client config — contains bearer tokens, keep local
+.mcp.json
+
+# Parallel-agent worktree slots (see CLAUDE.md / AGENTS.md "Parallel work")
+.worktrees/
+
+# spec-kit local scaffolding
+.specify/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Local agent/MCP configs carry credentials — never commit them.
+.codex/
+.cursor/
+.grok/
+.mcp.json
+.claude/settings.local.json

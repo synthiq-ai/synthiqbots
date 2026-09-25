@@ -1,0 +1,15 @@
+# Carries the MCP bearer token — never commit.
+config.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# PyInstaller build output
+build/
+dist/
+*.app
+*.dmg
+*.exe

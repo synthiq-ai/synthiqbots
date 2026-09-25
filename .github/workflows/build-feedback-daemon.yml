@@ -1,0 +1,137 @@
+name: Build feedback-daemon
+
+# Path-filtered: only fires when daemon code or this workflow itself changes.
+# We don't want every classifier-prompt tweak rebuilding the .exe.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/feedback-daemon/**'
+      - '.github/workflows/build-feedback-daemon.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/feedback-daemon/**'
+      - '.github/workflows/build-feedback-daemon.yml'
+  workflow_dispatch:
+
+permissions:
+  # `contents: write` lets us recreate the rolling-tag release.
+  contents: write
+
+concurrency:
+  # Don't pile up parallel rolling-release publishes — newer ones win.
+  group: build-feedback-daemon-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Cross-compile windows-amd64
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/feedback-daemon
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/feedback-daemon/go.mod
+          cache-dependency-path: apps/feedback-daemon/go.sum
+
+      - name: Vet + test
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Cross-compile windows-amd64
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0
+        run: |
+          set -euo pipefail
+          mkdir -p ../../dist
+          go build \
+            -trimpath \
+            -ldflags="-s -w -X main.commit=${GITHUB_SHA::8}" \
+            -o ../../dist/feedback-daemon-windows-amd64.exe \
+            .
+          # Stage the doc + config alongside so users get them in one click.
+          cp config.example.toml ../../dist/
+          cp README.md ../../dist/feedback-daemon-README.md
+          ls -la ../../dist/
+
+      - name: Compute SHA256
+        # Default working-directory is apps/feedback-daemon; the artifact lives
+        # at repo-root/dist/, so jump back up.
+        working-directory: ${{ github.workspace }}/dist
+        run: |
+          sha256sum feedback-daemon-windows-amd64.exe \
+            > feedback-daemon-windows-amd64.exe.sha256
+          cat feedback-daemon-windows-amd64.exe.sha256
+
+      - name: Upload as workflow artifact
+        # Always uploaded — gives PR builds a downloadable .exe (90 day retention)
+        # and keeps the push-to-main path covered too in case the release step
+        # has to be diagnosed independently.
+        uses: actions/upload-artifact@v4
+        with:
+          name: feedback-daemon-windows-amd64
+          path: |
+            dist/feedback-daemon-windows-amd64.exe
+            dist/feedback-daemon-windows-amd64.exe.sha256
+            dist/config.example.toml
+            dist/feedback-daemon-README.md
+          retention-days: 90
+
+      - name: Stage release notes
+        if: github.event_name != 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          {
+            echo "Rolling release built from \`main\` by CI."
+            echo ""
+            echo "**Commit**: [\`${GITHUB_SHA}\`](https://github.com/${{ github.repository }}/commit/${GITHUB_SHA})"
+            echo "**Built at**: $(date -u +"%Y-%m-%d %H:%M UTC")"
+            echo "**Triggered by**: ${{ github.event_name }}"
+            echo ""
+            echo "## Build flags"
+            echo '```'
+            echo "GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w'"
+            echo '```'
+            echo ""
+            echo "## SHA256"
+            echo '```'
+            cat dist/feedback-daemon-windows-amd64.exe.sha256
+            echo '```'
+            echo ""
+            echo "## Install"
+            echo "See [\`apps/feedback-daemon/README.md\`](https://github.com/${{ github.repository }}/blob/main/apps/feedback-daemon/README.md) (or download the README asset attached below)."
+            echo ""
+            echo "## How this release is maintained"
+            echo "Auto-published on every merge to \`main\` that touches \`apps/feedback-daemon/**\`. Tag is force-recreated each time, so the URL is stable but the underlying SHA moves. Frozen point-in-time snapshots live as separate \`feedback-daemon-vX.Y.Z\` tags (manual)."
+          } > /tmp/release-notes.md
+          cat /tmp/release-notes.md
+
+      - name: Publish rolling release feedback-daemon-latest
+        if: github.event_name != 'pull_request'
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Force-recreate the rolling release so the tag re-anchors to this
+          # commit. Asset names stay identical so the download URL is stable.
+          gh release delete feedback-daemon-latest --yes --cleanup-tag || true
+          gh release create feedback-daemon-latest \
+            --target "${GITHUB_SHA}" \
+            --title "feedback-daemon (latest from main)" \
+            --notes-file /tmp/release-notes.md \
+            --prerelease \
+            dist/feedback-daemon-windows-amd64.exe \
+            dist/feedback-daemon-windows-amd64.exe.sha256 \
+            dist/config.example.toml \
+            dist/feedback-daemon-README.md

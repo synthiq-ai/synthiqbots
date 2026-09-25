@@ -1,0 +1,46 @@
+# Copy to config.toml and fill in. config.toml is gitignored (carries the bearer token).
+#   cp config.toml.example config.toml
+#
+# The desktop app (app.py) edits these same settings via its Settings dialog and
+# saves to the per-user config dir, so you only hand-edit this for the CLI.
+
+[mcp]
+# Gameplay MCP endpoint. LAN fast path (same subnet as the gaming PC):
+url = "http://192.168.100.11:18790/mcp"
+# Public TLS alternative (IP-allowlisted):
+# url = "https://mcp.wow.example.com/mcp"
+# Must equal OllamaChat.Mcp.BearerToken on the server. NEVER commit the real token.
+bearer_token = "REPLACE_WITH_MCP_BEARER_TOKEN"
+timeout_seconds = 180          # gateway round-trip + tool loop can take a while
+
+[command]
+# The speaking player — drives the gateway system prompt, master-session command
+# routing (AutoClaim), and the optional in-game reply whisper. Use name OR guid.
+player_name = "Slayo"
+# player_guid = 10001
+bot_guid = 0                  # 0 = server's configured single leader (Claude 20007)
+emit_in_game = false          # true also whispers the reply into your WoW chat log
+
+[stt]
+# whisper.cpp (default, all platforms): self-contained, Metal on Mac, CPU on Win.
+# faster-whisper: use only with an NVIDIA CUDA GPU (sub-second on the RTX 5080).
+backend = "whispercpp"        # whispercpp | faster-whisper
+model = "base.en"             # tiny.en | base.en | small.en (bigger = slower, more accurate)
+device = "auto"               # cuda | cpu | auto   (faster-whisper only)
+compute_type = "int8"         # float16 (GPU) | int8 (CPU)
+language = "en"
+input_device = -1             # -1 = system default mic; or a sounddevice index
+
+[hotkey]
+key = "f9"                    # hold to talk; f1-f12 or a single character
+
+[tts]
+enabled = false              # true = speak Claude's reply through your speakers (native OS voice)
+# Voice name. "" = system default.
+#   macOS:   any `say` voice — run `say -v '?'` to list. Download Enhanced/Siri
+#            voices in System Settings > Spoken Content > System Voice > Manage Voices.
+#            e.g. "Samantha", "Ava (Enhanced)", "Zoe (Premium)".
+#   Windows: a SAPI5 voice, e.g. "Microsoft Zira Desktop" / "Microsoft David Desktop".
+voice = ""
+rate = 180                   # macOS `say` words-per-minute (natural ~175–200)
+windows_rate = 0             # Windows SAPI rate, -10 (slow) .. 10 (fast)

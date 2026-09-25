@@ -1,0 +1,708 @@
+{
+  "_about": "Question wording for the jev decision tier (src/mod-ollama-chat_jev.cpp). One object per site; each question carries `instructions` (the judgment) and `criteria` (what every option means, contrastively). The option SETS for Choice questions are NOT authoritative here — the C++ side intersects them with its live allowlists (kClassifierAllowedActions, the dispatcher's icon/loot vocabularies), so this file can only change wording, never advertise an action the dispatcher would reject. Reloaded by `config_reload`. Bench: tests/jev/bench_jev.py.",
+  "_contract": "Choice answers return {choice, probabilities, confidence}; noul answers return only {noul} (no confidence). Gates that feed a MinConfidence knob therefore use two-way Choice, never noul.",
+  "intent": {
+    "intent": {
+      "instructions": {
+        "question": "The leader bot has just proposed an activity (quest, dungeon or zone) and/or is running one. What is the player's chat message doing?",
+        "read": "`message` is the player's line. `hasOpenProposal` is true when the bot is waiting for a yes/no on its proposal. `hasExecutingPlan` is true when an activity is underway and the bot is waiting to hear it is finished.",
+        "rules": [
+          "approve and reject are only meaningful while hasOpenProposal is true.",
+          "done is only meaningful while hasExecutingPlan is true.",
+          "A direct playerbot command (follow me, stay, attack, summon, hearth, release, leave party) is never an approval or a completion — it is other.",
+          "A bare greeting (hey, hi, yo) with nothing else is other.",
+          "An affirmative opener followed by a decline ('yeah not right now', 'ok not today', 'sure, maybe later') is a reject.",
+          "'why not' / 'why not, let's go' is an approval; 'why not skip it' is a reject."
+        ]
+      },
+      "criteria": {
+        "approve": {
+          "what": "The player accepts the proposed activity and wants the bot to start it.",
+          "examples": [
+            "yes",
+            "yeah",
+            "sure",
+            "ok",
+            "alright",
+            "let's go",
+            "sounds good",
+            "I'm in",
+            "down for that",
+            "bet",
+            "why not"
+          ],
+          "not_for": "Agreement-shaped words that introduce a decline ('yeah not now', 'sure but later'); the polite-decline idioms 'I'm good' / 'I'm all set' / 'all set' / 'I'm fine' — even after 'sure' or 'yes' they mean NO THANKS; or 'yes' when there is no open proposal."
+        },
+        "reject": {
+          "what": "The player declines or defers the proposed activity.",
+          "examples": [
+            "no",
+            "nope",
+            "nah",
+            "pass",
+            "skip",
+            "not that",
+            "something else",
+            "not now",
+            "maybe later",
+            "I'm farming",
+            "yeah not today",
+            "i'm good",
+            "i'm all set",
+            "sure i'm all set",
+            "all set thanks",
+            "not a fan",
+            "let's not",
+            "hold off"
+          ],
+          "not_for": "'not a problem' / 'no worries' style acceptances; 'not done yet' (a hedge about progress, not a decline); questions about the proposal."
+        },
+        "done": {
+          "what": "The player says the current activity is finished and wants whatever is next.",
+          "examples": [
+            "done",
+            "finished",
+            "turned it in",
+            "next",
+            "what's next",
+            "we're done",
+            "wrapped it up",
+            "ok next"
+          ],
+          "not_for": "'not done yet' (that is a hedge, not done); anything while no activity is executing."
+        },
+        "other": {
+          "what": "Anything else: questions, lore chat, banter, direct playerbot commands, greetings, or text too ambiguous to place.",
+          "examples": [
+            "do you have a sec",
+            "follow me",
+            "hey",
+            "hmm",
+            "what level is that",
+            "attack my target"
+          ]
+        }
+      }
+    }
+  },
+  "tickgate": {
+    "gate": {
+      "instructions": {
+        "question": "Is this a good moment for the leader bot to interrupt the player with a new activity proposal?",
+        "read": "`player.inCombat` is whether they are fighting now; `player.hpPct` is 0-100; `player.idleSec` is seconds since they last moved, chatted or completed a quest; `context.recentRejectedCount` is how many recent proposals they turned down; `context.sessionAgeSec` is seconds since login; `context.lastProposalAgoSec` is seconds since the last proposal (0 = none yet).",
+        "default": "Lean toward propose — the deterministic tick already passed the cheap gates. Veto only when something concrete says leave them alone. Low idleSec (busy questing) is NOT a reason to wait; the planner picks something related to what they are doing."
+      },
+      "criteria": {
+        "propose": {
+          "what": "Nothing in the snapshot argues against a proposal right now; proceed to the planner.",
+          "examples": [
+            "calm, full hp, idle in town",
+            "actively questing at 88% hp with no recent rejections"
+          ]
+        },
+        "wait": {
+          "what": "Leave the player alone this tick.",
+          "examples": [
+            "inCombat is true",
+            "hpPct under ~40 just after a fight",
+            "three or more recent rejections",
+            "logged in under 30 seconds ago"
+          ]
+        }
+      }
+    }
+  },
+  "planner": {
+    "decision": {
+      "instructions": {
+        "question": "The C++ side picked a concrete candidate (`candidate`) to propose to the player. Should the bot propose it now, or wait?",
+        "read": "`player.inCombat`, `player.hpPct` (0-100), `player.idleSec`, `candidate.kind` (quest | dungeon | fallbackZone) with its title/name and `candidate.hasProgress`, `context.recentRejectedCount`, `context.sessionAgeSec`.",
+        "default": "Lean toward propose — that is why the tick fired. Wait is the escape hatch for a bad moment, not a judgment on the candidate's quality."
+      },
+      "criteria": {
+        "propose": {
+          "what": "Good moment; a chat line will be written by a separate step.",
+          "examples": [
+            "player calm and out of combat with a quest that already has progress",
+            "right level for the dungeon, idle in town"
+          ]
+        },
+        "wait": {
+          "what": "Bad moment; say nothing this tick.",
+          "examples": [
+            "player in combat",
+            "hp under ~40 out of combat",
+            "recentRejectedCount >= 3",
+            "sessionAgeSec under 30"
+          ]
+        }
+      }
+    }
+  },
+  "tactical": {
+    "_note": "Site B (PR 2). The option SET is the rules-pruned eligible list built in C++ each tick (registry-validated actions whose only required arg is botGuid, plus bot_emote / bot_set_loot_filter whose one arg the speculative answers fill; combat-blocked, HITL-gated and state-inappropriate members removed) + `other`. Everything else the tactical prompt can pick lives behind `other`, which hands the tick to the LLM tier. Wording here mirrors prompts/ollama_tactical.md's policy.",
+    "action": {
+      "instructions": {
+        "question": "This player-bot is a teammate in a party led by a human (or a self-mastered leader). The playerbots engine already owns combat: target selection, rotations, threat, survival. Given the snapshot, which ONE local action should the bot take this tick?",
+        "read": "`snapshot` is the bot's state as key=value pairs: hp_pct, in_combat, target, group_size, quests_turnin_ready, turnin_npc (the NPC that can take a completed quest, or none_nearby), bag_free, grey_items (sellable junk), durability_min_pct, vendor_near / repair_near / class_trainer_near + trainable_spells (service NPCs in range), cooling_down (actions that recently did nothing — do not pick them), playerN_* (whitelisted humans in range: name, level, hp, distance, same_party), player_count, and any recent_event_* fields (something just happened nearby). `directive` (when present) is a standing order from the strategic layer. `botIsDead` says whether the bot is a corpse/ghost.",
+        "policy": [
+          "Routine, unchanged, or no useful action: tactical_idle. This is the correct answer most ticks.",
+          "Never use an emote as a default idle action. bot_emote only when a concrete recent_event_* or nearby change this tick deserves a visible reaction; a greeting or 'introducing the bot' is never a reason.",
+          "Maintenance verbs only when the snapshot shows the need AND the NPC: bot_sell_junk needs grey_items > 0 and vendor_near; bot_maintenance needs durability_min_pct < 50 with repair_near, or bag_free <= 2 with vendor_near; bot_train_spells needs trainable_spells > 0. Otherwise idle.",
+          "quests_turnin_ready > 0, turnin_npc names an NPC (not none_nearby), out of combat: bot_turn_in_quest is worth a tick. A quest giver standing nearby is not enough — only turnin_npc can take the quest.",
+          "A dead bot: bot_accept_resurrect_request when a rez popup is pending (it is only offered then), else bot_release_spirit (ghost, no sickness) or bot_revive (graveyard, sickness). Ankh / Soulstone self-rez is `other`.",
+          "If the right move needs a target, a name, text, an item, a spell, a position, or anything the listed options cannot express, answer `other` — the fuller model handles that tick."
+        ]
+      },
+      "criteria": {
+        "tactical_idle": {
+          "what": "Nothing needs doing: state is routine or unchanged. The default.",
+          "examples": [
+            "standing with the party, no events",
+            "following the leader, full hp"
+          ]
+        },
+        "bot_emote": {
+          "what": "One visible emote reacting to a concrete recent event or nearby change THIS tick.",
+          "not_for": "greetings, idle fidgeting, every-tick reactions, anything while in combat"
+        },
+        "bot_follow": {
+          "what": "Resume following the party leader / master after being left behind (a same-party human is far away and the bot is out of combat)."
+        },
+        "bot_stay": {
+          "what": "Hold position — e.g. the group is setting up and the bot should stop moving."
+        },
+        "bot_flee": {
+          "what": "Deliberate escape: the bot is being focus-fired or standing in something lethal and must run. Rare."
+        },
+        "bot_revive": {
+          "what": "Dead: revive at the graveyard (rez sickness)."
+        },
+        "bot_release_spirit": {
+          "what": "Dead, no rez incoming: release to ghost form (corpse run, no sickness)."
+        },
+        "bot_accept_resurrect_request": {
+          "what": "Dead with a resurrection popup pending from a healer or peer bot: accept it."
+        },
+        "bot_turn_in_quest": {
+          "what": "quests_turnin_ready > 0, out of combat, and turnin_npc names the NPC that ends the quest."
+        },
+        "bot_maintenance": {
+          "what": "Repair / restock at a vendor when gear is damaged or supplies low and a vendor is near."
+        },
+        "bot_train_spells": {
+          "what": "Learn new spells: the bot just levelled and a trainer is near."
+        },
+        "bot_sell_junk": {
+          "what": "Bags are filling with grey items and a vendor is near."
+        },
+        "bot_autogear": {
+          "what": "Equip better gear from the bags (after loot or a level)."
+        },
+        "bot_roll": {
+          "what": "A loot roll is open and the item is useful to this bot."
+        },
+        "bot_set_loot_filter": {
+          "what": "The loot policy should change for the current activity (farming vs questing).",
+          "not_for": "every tick — set once"
+        },
+        "bot_reset_ai": {
+          "what": "The bot is visibly stuck or misbehaving and needs its AI state reset. Rare."
+        },
+        "other": {
+          "what": "The right action is not in this list, or it needs an argument these options cannot carry (a target, a name, text to say, an item, a spell, coordinates, a squad order, a self-rez consumable). Hands the tick to the fuller model."
+        }
+      }
+    },
+    "escalate": {
+      "instructions": {
+        "question": "Does this situation need the expensive strategic layer (a full reasoning model with tools) rather than a local action — a novel quest decision, real danger, ambiguous human intent, or planning the bot cannot resolve locally?",
+        "note": "Escalation is expensive and rate-limited. Routine social moments, idle observation and unchanged state are NOT escalations."
+      },
+      "criteria": {
+        "true": "Genuinely novel or high-stakes: ambiguous human instruction, unfamiliar quest logic, major danger the local menu cannot address, strategic planning.",
+        "false": "Routine tick, cosmetic reaction, or anything the local action menu already covers."
+      }
+    },
+    "emote": {
+      "instructions": "If a visible emote is the right reaction this tick, which single token? Pick the closest even if no emote is warranted (it is only read when the action is bot_emote).",
+      "criteria": {
+        "wave": "greeting or acknowledging someone arriving",
+        "nod": "agreement",
+        "cheer": "a kill, a level, a win",
+        "laugh": "something funny happened",
+        "shrug": "uncertainty",
+        "dance": "celebration",
+        "bow": "respect",
+        "salute": "acknowledging an order",
+        "clap": "applause",
+        "point": "drawing attention to something",
+        "smile": "friendly",
+        "sigh": "boredom or disappointment",
+        "thank": "gratitude",
+        "grats": "congratulating a level-up",
+        "train": "playful",
+        "roar": "battle cry before a pull",
+        "flex": "showing off after a win",
+        "kneel": "mourning or deference",
+        "sleep": "long idle",
+        "confused": "something unexpected"
+      }
+    },
+    "loot_filter": {
+      "instructions": "If the loot policy should change, which mode? Pick `normal` when unsure (only read when the action is bot_set_loot_filter).",
+      "criteria": {
+        "all": "loot everything",
+        "normal": "the default sensible policy",
+        "gray": "grey/junk too",
+        "disenchant": "disenchantable greens/blues for enchanting"
+      }
+    }
+  },
+  "classifier": {
+    "_note": "Site A. `action` is intersected with kClassifierAllowedActions AND the code-side eligible set (actions whose args the answers below can fill); everything else is reachable only through the LLM tier. `reply` is the canned acknowledgement per action (jev cannot write text).",
+    "action": {
+      "instructions": {
+        "question": "The human player sent this chat line to the squad-leader bot. Which single allowed tool should the leader run, or is it not a clear gameplay order?",
+        "read": "`message` is the line. `humanName` is the player's character. `botNames` are the individual bots in the squad besides the leader; if the line names one of them the order is for that bot alone. `leaderGroupedWithHuman` says whether the leader is in the player's party.",
+        "rules": [
+          "The leader ('Claude') is the command interface and squad leader, not a single-bot target: unscoped orders and orders addressed to Claude are squad orders (leader_command_all).",
+          "If exactly one non-leader bot is named, the order is for that bot (leader_command).",
+          "attack / attack it / engage / kill / kill it / finish it / burn it / dps it / nuke it / delete it all mean attack (a leader_command or leader_command_all with the attack command) — never emergency_stop, never bot_attack_target.",
+          "wipe / stop combat / back off / reset fight mean emergency_stop.",
+          "Conversation, lore, planning, questions, config/admin, banking, mail, item destruction, quest reward choice, crafting, or anything unclear is unknown."
+        ]
+      },
+      "criteria": {
+        "leader_command_all": {
+          "what": "A raw playerbot order for the whole squad: attack, follow, stay, accept/turn in quests, summon, eat, drink, maintenance, trainer learn, hearth, release, leave group.",
+          "examples": [
+            "attack",
+            "kill it",
+            "Claude attack",
+            "follow",
+            "stay",
+            "accept quests",
+            "turn in quests",
+            "summon to me",
+            "eat and drink",
+            "repair",
+            "train spells",
+            "hearth",
+            "release spirit",
+            "leave party"
+          ]
+        },
+        "leader_command": {
+          "what": "The same raw order but for ONE named non-leader bot.",
+          "examples": [
+            "Clawd attack",
+            "Geek kill it",
+            "Clawd follow me",
+            "Geek stay",
+            "Clawd summon to me"
+          ]
+        },
+        "emergency_stop": {
+          "what": "Break off combat and reset the squad.",
+          "examples": [
+            "wipe",
+            "stop combat",
+            "back off",
+            "reset fight",
+            "stop attacking"
+          ],
+          "not_for": "'stop' as part of a movement order ('stop following')."
+        },
+        "bot_revive": {
+          "what": "Resurrect the squad after a wipe.",
+          "examples": [
+            "revive all",
+            "rez everyone",
+            "revive yourself",
+            "rez yourself"
+          ]
+        },
+        "bot_set_raid_target_icon": {
+          "what": "Mark the leader's target with a raid icon.",
+          "examples": [
+            "mark skull",
+            "put a cross on it",
+            "star that one",
+            "mark it moon"
+          ]
+        },
+        "bot_rti": {
+          "what": "Change which raid icon the squad treats as the kill target, or clear it.",
+          "examples": [
+            "clear rti",
+            "rti none",
+            "rti skull",
+            "focus skull"
+          ]
+        },
+        "bot_disperse": {
+          "what": "Spread the squad out.",
+          "examples": [
+            "spread out",
+            "disperse",
+            "don't stack"
+          ]
+        },
+        "bot_set_loot_filter": {
+          "what": "Change what the bots loot.",
+          "examples": [
+            "loot all",
+            "loot normal",
+            "loot gray only",
+            "disenchant loot"
+          ]
+        },
+        "bot_pet_command": {
+          "what": "Pet stance or movement order.",
+          "examples": [
+            "pet follow",
+            "pet stay",
+            "pet passive",
+            "pet defensive",
+            "pet aggressive"
+          ]
+        },
+        "bot_roll": {
+          "what": "Roll on / need the item on offer.",
+          "examples": [
+            "roll",
+            "need that",
+            "roll for it"
+          ]
+        },
+        "bot_sell_junk": {
+          "what": "Sell grey junk at a vendor.",
+          "examples": [
+            "sell junk",
+            "vendor trash",
+            "sell greys"
+          ]
+        },
+        "bot_autogear": {
+          "what": "Auto-equip the best gear in bags.",
+          "examples": [
+            "gear up",
+            "autogear",
+            "equip your best stuff"
+          ]
+        },
+        "bot_set_home": {
+          "what": "Bind the hearthstone here.",
+          "examples": [
+            "set home",
+            "bind hearth here",
+            "make this your home"
+          ]
+        },
+        "bot_accept_resurrect_request": {
+          "what": "Accept a pending resurrection.",
+          "examples": [
+            "accept the rez",
+            "take the resurrect"
+          ]
+        },
+        "bot_stop_combat": {
+          "what": "Stop fighting but do not reset formation.",
+          "examples": [
+            "stop fighting",
+            "disengage"
+          ]
+        },
+        "bot_flee": {
+          "what": "Run away from the fight.",
+          "examples": [
+            "run",
+            "flee",
+            "get out of there"
+          ]
+        },
+        "bot_accept_quest": {
+          "what": "Accept the quest on offer.",
+          "examples": [
+            "accept the quest",
+            "take the quest"
+          ]
+        },
+        "bot_turn_in_quest": {
+          "what": "Turn in a completed quest.",
+          "examples": [
+            "turn it in",
+            "hand in the quest"
+          ]
+        },
+        "bot_maintenance": {
+          "what": "Repair and restock.",
+          "examples": [
+            "do maintenance",
+            "repair and restock"
+          ]
+        },
+        "bot_train_spells": {
+          "what": "Learn new spells at the trainer.",
+          "examples": [
+            "train",
+            "learn spells"
+          ]
+        },
+        "bot_follow": {
+          "what": "Follow the player (single-bot form).",
+          "examples": [
+            "follow me"
+          ]
+        },
+        "bot_stay": {
+          "what": "Hold position (single-bot form).",
+          "examples": [
+            "stay here"
+          ]
+        },
+        "bot_say": {
+          "what": "Say a given line in /say — requires free text the LLM tier must extract.",
+          "examples": [
+            "say hello everyone"
+          ]
+        },
+        "bot_yell": {
+          "what": "Yell a given line — requires free text the LLM tier must extract.",
+          "examples": [
+            "yell for help"
+          ]
+        },
+        "bot_add_loot_item": {
+          "what": "Always loot a named item — requires an item name.",
+          "examples": [
+            "always loot linen cloth"
+          ]
+        },
+        "bot_remove_loot_item": {
+          "what": "Stop looting a named item — requires an item name.",
+          "examples": [
+            "stop looting copper ore"
+          ]
+        },
+        "bot_invite_to_group": {
+          "what": "Invite a named player — requires a name.",
+          "examples": [
+            "invite Bob"
+          ]
+        },
+        "unknown": {
+          "what": "Not a clear single gameplay order: conversation, lore, questions, planning, admin/config, banking, mail, crafting, quest reward choices, item destruction, or anything ambiguous.",
+          "examples": [
+            "how are you",
+            "what should we do next",
+            "tell me about Stranglethorn",
+            "can you check the mail",
+            "destroy that sword",
+            "which reward is best"
+          ]
+        }
+      }
+    },
+    "command": {
+      "instructions": {
+        "question": "If the line is a raw playerbot order for the squad or a named bot, which raw command is it? Pick `none` when the line is not such an order.",
+        "read": "`message` is the line; `humanName` is the player the bots follow."
+      },
+      "criteria": {
+        "attack my target": {
+          "what": "Attack / engage / kill / finish / burn / dps / nuke / delete the player's target."
+        },
+        "follow": {
+          "what": "Follow the player.",
+          "examples": [
+            "follow",
+            "follow me",
+            "Clawd follow me"
+          ]
+        },
+        "stay": {
+          "what": "Hold position.",
+          "examples": [
+            "stay",
+            "stay here",
+            "hold"
+          ]
+        },
+        "accept *": {
+          "what": "Accept every available quest.",
+          "examples": [
+            "accept quests",
+            "grab the quests"
+          ]
+        },
+        "talk *": {
+          "what": "Turn in completed quests / talk to the quest giver.",
+          "examples": [
+            "turn in quests",
+            "hand in"
+          ]
+        },
+        "summon": {
+          "what": "Teleport the bots to the player.",
+          "examples": [
+            "summon to me",
+            "teleport to me",
+            "come here"
+          ]
+        },
+        "eat": {
+          "what": "Eat to recover health.",
+          "examples": [
+            "eat",
+            "rest up"
+          ]
+        },
+        "drink": {
+          "what": "Drink to recover mana.",
+          "examples": [
+            "drink",
+            "mana up"
+          ]
+        },
+        "maintenance": {
+          "what": "Repair and restock.",
+          "examples": [
+            "repair",
+            "restock",
+            "maintenance"
+          ]
+        },
+        "trainer learn": {
+          "what": "Learn spells at the trainer.",
+          "examples": [
+            "train spells",
+            "learn spells"
+          ]
+        },
+        "u 6948": {
+          "what": "Use the hearthstone.",
+          "examples": [
+            "hearth",
+            "go home",
+            "use hearthstone"
+          ]
+        },
+        "release": {
+          "what": "Release spirit / become a ghost.",
+          "examples": [
+            "release spirit",
+            "release",
+            "become ghost"
+          ]
+        },
+        "leave": {
+          "what": "Leave the group.",
+          "examples": [
+            "leave group",
+            "leave party",
+            "drop party"
+          ]
+        },
+        "none": {
+          "what": "The line is not a raw squad order (a tool action like marking, loot policy, pet stance, or not an order at all)."
+        }
+      }
+    },
+    "icon": {
+      "instructions": "If the line marks a target or changes the raid-target icon, which icon? `none` when no icon is named or the line clears the mark.",
+      "criteria": {
+        "skull": "skull",
+        "cross": "cross / x",
+        "circle": "circle",
+        "star": "star",
+        "square": "square",
+        "triangle": "triangle",
+        "diamond": "diamond",
+        "moon": "moon",
+        "none": "no icon named, or 'clear' / 'rti none'"
+      }
+    },
+    "loot_filter": {
+      "instructions": "If the line changes the loot policy, which mode? Pick `normal` when unclear.",
+      "criteria": {
+        "all": "loot everything",
+        "normal": "the default sensible policy (also covers 'quest items' — normal already takes them)",
+        "gray": "grey/junk items too",
+        "disenchant": "disenchantable greens/blues for enchanting"
+      }
+    },
+    "pet_command": {
+      "instructions": "If the line orders the pet, which stance or movement command? `none` when it is not a pet order.",
+      "criteria": {
+        "follow": "pet follows",
+        "stay": "pet stays",
+        "passive": "pet never attacks",
+        "defensive": "pet attacks only when attacked",
+        "aggressive": "pet attacks anything nearby",
+        "none": "not a pet order"
+      }
+    },
+    "reply": {
+      "leader_command_all": {
+        "attack my target": "Attacking target.",
+        "follow": "Following {{humanName}}.",
+        "stay": "Staying.",
+        "accept *": "Accepting quests.",
+        "talk *": "Turning in quests.",
+        "summon": "Summoning.",
+        "eat": "Eating.",
+        "drink": "Drinking.",
+        "maintenance": "Doing maintenance.",
+        "trainer learn": "Learning spells.",
+        "u 6948": "Hearthing.",
+        "release": "Releasing.",
+        "leave": "Leaving group."
+      },
+      "leader_command": {
+        "attack my target": "{{target}} attacking.",
+        "follow": "{{target}} following {{humanName}}.",
+        "stay": "{{target}} staying.",
+        "accept *": "{{target}} accepting quests.",
+        "talk *": "{{target}} turning in.",
+        "summon": "Summoning {{target}}.",
+        "eat": "{{target}} eating.",
+        "drink": "{{target}} drinking.",
+        "maintenance": "{{target}} doing maintenance.",
+        "trainer learn": "{{target}} learning spells.",
+        "u 6948": "{{target}} hearthing.",
+        "release": "{{target}} releasing.",
+        "leave": "{{target}} leaving group."
+      },
+      "emergency_stop": "Stopping.",
+      "bot_revive": "Reviving.",
+      "bot_set_raid_target_icon": "Marked.",
+      "bot_rti": "RTI updated.",
+      "bot_disperse": "Spreading out.",
+      "bot_set_loot_filter": "Loot filter set.",
+      "bot_pet_command": "Pet ordered.",
+      "bot_roll": "Rolling.",
+      "bot_sell_junk": "Selling junk.",
+      "bot_autogear": "Gearing up.",
+      "bot_set_home": "Home set.",
+      "bot_accept_resurrect_request": "Accepting rez.",
+      "bot_stop_combat": "Stopping combat.",
+      "bot_flee": "Fleeing.",
+      "bot_accept_quest": "Accepting quest.",
+      "bot_turn_in_quest": "Turning in.",
+      "bot_maintenance": "Doing maintenance.",
+      "bot_train_spells": "Learning spells.",
+      "bot_follow": "Following.",
+      "bot_stay": "Staying."
+    }
+  },
+  "playbook": {
+    "_note": "Leader playbook relevance filter (PR 3). The C++ asks ONE noul per playbook row of prompts/gateway_leader.md, injecting that row's trigger phrases as `workflow_triggers`; rows with P(relevant) >= Jev.Playbook.MinRelevance are kept (bounded by MinRows/MaxRows), header and footer always. This template supplies only the shared wording.",
+    "row": {
+      "question": "The player sent `message` to the squad-leader bot. Is the workflow whose example trigger phrases are listed in `workflow_triggers` what the player is asking for — or something the bot would need in order to answer or carry it out?",
+      "true": "The message is one of the triggers, a paraphrase of one, a specific case of that workflow, or a request the workflow is needed to fulfil (e.g. 'where's Clawd' needs the locate/roster workflow).",
+      "false": "A different order, a different tool family, small talk, or a question about something this workflow does not touch. Sharing a word with a trigger is not relevance."
+    }
+  }
+}

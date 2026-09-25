@@ -1,0 +1,2861 @@
+[worldserver]
+
+########################################
+# mod-ollama-chat configuration
+########################################
+
+# --------------------------------------------
+# CORE MODULE TOGGLES & DEBUGGING
+# --------------------------------------------
+
+# OllamaChat.Enable
+#     Description: Enable or disable the module.
+#     Default:     1 (true)
+OllamaChat.Enable = 1
+
+# OllamaChat.DisableOllamaResponses
+#     Description: DEPRECATED / legacy no-op for direct local chat replies.
+#                  The old direct local-Ollama chat/random/event responders were removed.
+#                  Use OllamaChat.Tactical.Enable and OllamaChat.Tactical.AmbientEnable
+#                  to control the local Ollama companion loop.
+#     Default:     0 (false)
+OllamaChat.DisableOllamaResponses = 0
+
+# OllamaChat.DebugEnabled
+#     Description: Enables extra logging for debugging purposes.
+#                  When set to 1 (true), detailed debug information will be logged by the module.
+#                  When set to 0 (false), only standard logging is used.
+#     Default:     0 (false)
+OllamaChat.DebugEnabled = 0
+
+# OllamaChat.DebugShowFullPrompt
+
+#     Description: When enabled (1), logs the complete prompt sent to the Ollama API including RAG information.
+#                  This is useful for debugging what information the RAG system provides to bots.
+#                  Only active when OllamaChat.DebugEnabled is also enabled.
+#                  When disabled (0), only standard logging is used.
+#     Default:     0 (false)
+OllamaChat.DebugShowFullPrompt = 0
+
+# --------------------------------------------
+# OLLAMA LLM CONNECTION AND INFERENCE
+# --------------------------------------------
+#
+# DEPRECATED: These OllamaChat.* connection keys are kept for one release so
+# older configs still parse, but the old direct chat/random/event Ollama path
+# is removed. Tactical/classifier use OllamaChat.Tactical.* and
+# OllamaChat.Gateway.OllamaClassifier.* below.
+
+# OllamaChat.Url
+#     Description: The URL used to query the Ollama API.
+#     Default:     http://localhost:11434/api/generate
+OllamaChat.Url = http://localhost:11434/api/generate
+
+# OllamaChat.Model
+#     Description: The model identifier to be used in the Ollama API request.
+#     Default:     llama3.2:1b
+OllamaChat.Model = llama3.2:1b
+
+# OllamaChat.NumPredict
+#     Description: Maximum number of tokens to generate in Ollama responses.
+#     0 = unlimited. Only set if you want a hard cap.
+#     Default: 40
+#
+#     | NumPredict | Approx. Words | Use Case                         |
+#     |:----------:|:-------------:|:---------------------------------|
+#     |     20     |   ~13–15      | Very short/emote/chat            |
+#     |     30     |     ~20       | Short reply                      |
+#     |     40     |   ~27–30      | Standard WoW reply (recommended) |
+#     |     50     |   ~35–38      | Slightly longer reply            |
+#     |     75     |   ~50–60      | Long quest/lore text             |
+#     |    100+    |   70–80+      | Multi-paragraph (not typical)    |
+OllamaChat.NumPredict = 100
+
+# OllamaChat.Temperature
+#     Description: Controls the "creativity" or randomness of the model’s output.
+#                  Lower values (e.g., 0.2) = more focused, repetitive, and predictable.
+#                  Higher values (e.g., 1.0) = more random, creative, or surprising.
+#                  0.8 is the Ollama default.
+#     Example:     OllamaChat.Temperature = 0.6
+#     Default:     0.8
+OllamaChat.Temperature = 0.8
+
+# OllamaChat.TopP
+#     Description: Controls nucleus sampling, another way to shape randomness.
+#                  Lower values (e.g., 0.5) = more conservative.
+#                  Higher values (up to 1.0) = more open.
+#                  0.95 is the Ollama default.
+#     Example:     OllamaChat.TopP = 0.9
+#     Default:     0.95
+OllamaChat.TopP = 0.95
+
+# OllamaChat.RepeatPenalty
+#     Description: Discourages repetition in model output.
+#                  1.0 = no penalty. Higher (e.g., 1.2) = less repetition.
+#                  1.1 is the Ollama default.
+#     Example:     OllamaChat.RepeatPenalty = 1.2
+#     Default:     1.1
+OllamaChat.RepeatPenalty = 1.1
+
+# OllamaChat.NumCtx
+#     Description: Maximum context length (in tokens) sent to the model.
+#                  0 = model default. Use a value only if you want to restrict or expand context.
+#                  Example for Llama-3 8B: 8192. For 70B: 8192/32768.
+#     Example:     OllamaChat.NumCtx = 4096
+#     Default:     0
+OllamaChat.NumCtx = 0
+
+# OllamaChat.NumThreads
+#     Description: Maximum number of threads the model should use to compute the request.
+#                  0 = model default. Use a value only if you want to restrict or change from auto.
+#                  
+#     Example:     OllamaChat.NumThreads = 2
+#     Default:     0
+OllamaChat.NumThreads = 0
+
+# OllamaChat.Stop
+#     Description: Optional. Comma-separated list of string "stop sequences". If the model outputs any of these strings, it will immediately stop generating further text and return the response up to that point. Use this to prevent the model from continuing into unwanted sections, such as another user's dialogue turn in a chat application.
+#                  Example: "User:,Bot:" will stop the output if "User:" or "Bot:" appears in the response. Leave blank to disable.
+#     Example:     OllamaChat.Stop = User:,Bot:
+#     Default:     (empty)
+OllamaChat.Stop =
+
+# OllamaChat.SystemPrompt
+#     Description: Optional. Content for the "system" field sent to Ollama. Can be used to steer or "prime" the model's behavior globally.
+#                  Leave blank for no system prompt, or enter your own.
+#     Example:     OllamaChat.SystemPrompt = "Always answer as if you are a WoW quest giver."
+#     Default:     (empty)
+OllamaChat.SystemPrompt =
+
+# OllamaChat.Seed
+#     Description: Optional. Random seed for deterministic generation. Set to a number for repeatable results, or leave blank for normal random output.
+#     Example:     OllamaChat.Seed = 42
+#     Default:     (empty)
+OllamaChat.Seed =
+
+# OllamaChat.MaxConcurrentQueries
+#     Description: The maximum number of concurrent API queries allowed. Use 0 for no limit.
+#     Default:     0
+OllamaChat.MaxConcurrentQueries = 0
+
+# --------------------------------------------
+# THINK MODE SUPPORT
+# --------------------------------------------
+
+# OllamaChat.ThinkModeEnableForModule
+#     Description: Enables Think Mode for supported LLM models. When enabled, the API request will include the "think" flag,
+#                  and only the main response will be returned, with all <think> tags and their contents stripped from bot replies.
+#                  Make sure you set OllamaChat.NumPredict = 0 (unlimited) when using Think Mode.
+#                  Certain models that require Think Mode must have this enabled to function properly.
+#     Default:     0 (false)
+OllamaChat.ThinkModeEnableForModule = 0
+
+# --------------------------------------------
+# GENERAL CHATTER / RESPONSE LOGIC
+# --------------------------------------------
+
+# OllamaChat.PlayerReplyChance.Say
+#     Description: The percent chance (0-100) that an eligible bot replies to a player in Say/Yell channels.
+#     Default:     90
+OllamaChat.PlayerReplyChance.Say = 90
+
+# OllamaChat.BotReplyChance.Say
+#     Description: The percent chance (0-100) that an eligible bot replies to another bot in Say/Yell channels.
+#     Default:     10
+OllamaChat.BotReplyChance.Say = 10
+
+# OllamaChat.PlayerReplyChance.Channel
+#     Description: The percent chance (0-100) that an eligible bot replies to a player in custom channels (General, Trade, etc.).
+#     Default:     60
+OllamaChat.PlayerReplyChance.Channel = 60
+
+# OllamaChat.BotReplyChance.Channel
+#     Description: The percent chance (0-100) that an eligible bot replies to another bot in custom channels (General, Trade, etc.).
+#     Default:     3
+OllamaChat.BotReplyChance.Channel = 3
+
+# OllamaChat.PlayerReplyChance.Party
+#     Description: The percent chance (0-100) that an eligible bot replies to a player in Party/Raid chat.
+#     Default:     90
+OllamaChat.PlayerReplyChance.Party = 90
+
+# OllamaChat.BotReplyChance.Party
+#     Description: The percent chance (0-100) that an eligible bot replies to another bot in Party/Raid chat.
+#     Default:     25
+OllamaChat.BotReplyChance.Party = 25
+
+# OllamaChat.PlayerReplyChance.Guild
+#     Description: The percent chance (0-100) that an eligible bot replies to a player in Guild/Officer chat.
+#     Default:     70
+OllamaChat.PlayerReplyChance.Guild = 70
+
+# OllamaChat.BotReplyChance.Guild
+#     Description: The percent chance (0-100) that an eligible bot replies to another bot in Guild/Officer chat.
+#     Default:     5
+OllamaChat.BotReplyChance.Guild = 5
+
+# OllamaChat.EnableWhisperReplies
+#     Description: Enable or disable bot responses to whisper messages.
+#                  When set to 0 (false), bots will not reply to any whispers.
+#                  When set to 1 (true), bots will reply to whispers based on normal reply chances.
+#     Default:     0 (false)
+OllamaChat.EnableWhisperReplies = 0
+
+# OllamaChat.MaxBotsToPick
+#     Description: The maximum number of bots that can be randomly selected to reply when no bot name is explicitly mentioned.
+#     Default:     2
+OllamaChat.MaxBotsToPick = 2
+
+# OllamaChat.BlacklistCommands
+#     Description: A comma-separated list of command prefixes that should be ignored by AI bots.
+#                  If a message starts with any of these prefixes, the bot will not respond.
+#     Default:     
+OllamaChat.BlacklistCommands = autogear,talents,reset botAI,summon,release,revive,leave,attack,follow,flee,stay,runaway,grind,disperse,give leader,spells,cast ,quests,accept,drop,talk,reset,ss ,trainer,rti,rtsc,do ,ll ,e ,ue ,nc ,open,destroy,s ,b ,bank,gb ,u ,co ,ELVUI_VERSIONCHK,Asked,DPSMate_,LibGroupTalents,BLT,oRA3,Skada,HealBot,hbComms,questie,pfQuest,DBMv4-Ver,BWVQ3,add,remove,reset ai,report,state,help,log,stats,tank,offtank,healer,cc ,damage,boost,passive,defensive,aggressive,stay,guard,free,follow,assist,pet,stance,formation,rpg,emote,cheer,applaud,drink,eat,dance,attackers,reset instances,home,zone,who ,pos ,tele,grind,loot,quest,trainer,travel,teleport,homebind,unfollow,invite,uninvite,join,leave,leader,ready,release,save,update,reset talents,gear,trade,mail,ah ,ahscan,ahbid,ahbuy,ahsell,ahcancel,bag,repair,vendor,train,spells,reset spells,learn,unlearn,cast,uncast,use ,move,go ,look,stop,turn,face,wait,party,followleader,stayleader,moveleader,info,distance,debug,reset path,reset state,reset all,reset dungeon,reset raid,zone info,LHC40,RECOUNT,GTFO_v,Altoholic,DS_,DataStore
+
+# OllamaChat.SayDistance
+#     Description: The maximum distance (in game units) a bot must be within to reply on a Say message.
+#     Default:     30.0
+OllamaChat.SayDistance = 30.0
+
+# OllamaChat.YellDistance
+#     Description: The maximum distance (in game units) a bot must be within to reply on a Yell message.
+#     Default:     100.0
+OllamaChat.YellDistance = 100.0
+
+# OllamaChat.DisableForCustomChannels
+#     Description: When enabled (1), disables bot LLM routing in custom channels (General, Trade, LookingForGroup, etc.).
+#                  This allows you to reduce spam in public channels while keeping bot interactions in other chat types.
+#     Default:     0 (false)
+OllamaChat.DisableForCustomChannels = 0
+
+# OllamaChat.DisableForSayYell
+#     Description: When enabled (1), disables bot LLM routing and Tactical Ambient local speech in Say and Yell channels.
+#                  Useful if you want bots to be silent in proximity-based chats.
+#     Default:     0 (false)
+OllamaChat.DisableForSayYell = 0
+
+# OllamaChat.DisableForGuild
+#     Description: When enabled (1), disables bot LLM routing in Guild and Officer channels.
+#                  Useful for keeping guild chat focused without bot chatter.
+#     Default:     0 (false)
+OllamaChat.DisableForGuild = 0
+
+# OllamaChat.DisableForParty
+#     Description: When enabled (1), disables bot LLM routing and Tactical Ambient party speech in Party and Raid channels.
+#                  Useful if you want party chat to be bot-free.
+#     Default:     0 (false)
+OllamaChat.DisableForParty = 0
+
+# --------------------------------------------
+# RANDOM CHATTER SYSTEM
+# --------------------------------------------
+#
+# DEPRECATED / no-op: old timer-based random chatter was removed. Use
+# OllamaChat.Tactical.AmbientEnable and the Tactical Ambient knobs below.
+
+# OllamaChat.EnableRandomChatter
+#     Description: Deprecated no-op. Tactical Ambient Mode owns proactive bot
+#                  speech/emotes.
+#     Default:     1 (true)
+OllamaChat.EnableRandomChatter = 1
+
+# OllamaChat.DisableRepliesInCombat
+#     Description: If true, bots will not reply or produce random chatter when in combat.
+#     Default:     1
+OllamaChat.DisableRepliesInCombat = 1
+
+# OllamaChat.MinRandomInterval
+#     Description: The minimum time (in seconds) between random lines from an AI bot.
+#     Default:     45
+OllamaChat.MinRandomInterval = 45
+
+# OllamaChat.MaxRandomInterval
+#     Description: The maximum time (in seconds) between random lines from an AI bot.
+#     Default:     180
+OllamaChat.MaxRandomInterval = 180
+
+# OllamaChat.RandomChatterRealPlayerDistance
+#     Description: The maximum distance (in game units) a real player must be within for random bot chatter to trigger.
+#     Default:     200.0
+OllamaChat.RandomChatterRealPlayerDistance = 200.0
+
+# OllamaChat.RandomChatterBotCommentChance
+#     Description: The percent chance (0-100) that an AI bot will add a comment when random chatter is triggered.
+#     Default:     5
+OllamaChat.RandomChatterBotCommentChance = 5
+
+# OllamaChat.RandomChatterMaxBotsPerPlayer
+#     Description: The maximum number of AI bots that can trigger per random chatter update when a real player is nearby.
+#                  This limits how many bots can respond at once to avoid spam.
+#                   Each bot can only process once per tick, no duplicates if multiple real players are close.
+#     Default:     2
+OllamaChat.RandomChatterMaxBotsPerPlayer = 2
+
+# OllamaChat.RandomChatterPromptTemplate
+#   Description: The template string for random bot chatter prompts.
+#   Placeholders (named): {bot_name} {bot_level} {bot_class} {bot_race} {bot_gender} {bot_role} {bot_faction} {bot_area} {bot_zone} {bot_map} {bot_personality} {bot_personality_name} {environment_info}
+#   Note: {bot_personality_name} contains the name/key of the personality (e.g., "grumpy", "helpful"), while {bot_personality} contains the full personality description text.
+OllamaChat.RandomChatterPromptTemplate = "You are a Wrath-era WoW player. Name: {bot_name}, Level: {bot_level} {bot_class}, {bot_race} {bot_gender}, Spec: {bot_role}, Faction: {bot_faction}. Location: {bot_area}, Zone: {bot_zone}, Map: {bot_map}. MAKE SURE YOU RESPOND USING YOUR PERSONALITY, WHICH IS: {bot_personality_name}: {bot_personality}. {environment_info} Reply casually in under 15 words. No quotes, markdown, symbols, or emojis. Use real WoW slang. Avoid uncommon jargon or formatting."
+
+# OllamaChat.RandomChatterPromptVariations
+#   Description: Pipe-separated (|) list of additional prompt instructions that will be randomly selected and appended to the RandomChatterPromptTemplate.
+#                This adds variety to bot responses by changing the angle or focus of their random chatter.
+#                One variation is randomly chosen each time a bot generates random chatter.
+#                Leave empty to disable variations and use only the base template.
+#   Example:     "Talk about the weather or environment.|Comment on your current task or goal.|Make an observation about nearby creatures or players."
+#   Default:     (see below for Wrath-era appropriate variations)
+OllamaChat.RandomChatterPromptVariations = "Complain about something typical WoW players complain about.|Make a casual observation about leveling or grinding.|Share your opinion on Horde vs Alliance.|Comment on how tough or easy the zone feels.|Make a joke or sarcastic remark about WoW.|Mention something about the Lich King expansion.|Talk about wanting better gear or loot.|Comment on flying mounts or Northrend travel.|Complain about repair costs or gold.|Make an observation about your class in general.|Comment on dungeon finder or group content.|Talk about daily quests or reputation grinds.|Mention Death Knights being OP or annoying.|Share your thoughts on arena or battlegrounds.|Complain about nerfed abilities or changes.|Talk about needing to farm materials or gold.|Comment on the cold weather in Northrend.|Mention wanting to raid or do heroics.|Talk about achievements being too grindy.|Make a casual remark about quest objectives."
+
+# OllamaChat.RandomChatterQuestionVariations
+#   Description: Pipe-separated (|) list of prompt instructions telling the LLM to generate questions that will stimulate OTHER bots or players to respond.
+#                When a bot uses one of these variations, the LLM will generate a question based on the prompt instruction.
+#                These questions are meant to encourage other bots (via BotReplyChance) and real players to engage in conversation.
+#                When a bot generates random chatter, it will randomly choose between making a statement (RandomChatterPromptVariations)
+#                or asking a question (RandomChatterQuestionVariations).
+#                Leave empty to disable question variations and only use statement variations.
+#   Example:     "Ask about dungeon preferences.|Ask if anyone wants to PvP.|Ask about raid progression."
+#   Default:     (see below for engaging Wrath-era question prompts designed to stimulate bot-to-bot and player-to-bot conversations)
+OllamaChat.RandomChatterQuestionVariations = "Ask if others think this zone is difficult.|Ask about favorite dungeons.|Ask about Icecrown Citadel progression.|Ask about daily quest frustrations.|Ask about Naxxramas difficulty compared to original.|Ask what spec people are running.|Ask about Death Knight popularity.|Ask about upcoming Death Knight nerfs.|Ask about gold-making strategies in Wrath.|Ask if anyone is farming badges.|Ask about excitement for Ulduar.|Ask if dual spec was worth the cost.|Ask about opinions on the old talent trees.|Ask about favorite raid bosses.|Ask if flying mounts ruined world PvP.|Ask who's doing arena this season.|Ask about arena ratings.|Ask about Wintergrasp balance.|Ask about Oculus dungeon opinions.|Ask which professions make the most gold.|Ask about old-world flying possibilities.|Ask about reputation mount farming.|Ask which heroic dungeon is hardest.|Ask if emblems are too easy to get."
+
+# --------------------------------------------
+# EVENT CHATTER SYSTEM
+# --------------------------------------------
+#
+# DEPRECATED: the old event-specific Ollama responder was removed. Event hooks
+# now only feed recent_event_* context into Tactical Ambient Mode.
+
+# OllamaChat.EnableEventChatter
+#     Description: Deprecated no-op. Use Tactical.AmbientEnable and
+#                  Tactical.AmbientEventReactionChance.
+#     Default:     1 (true)
+OllamaChat.EnableEventChatter = 1
+
+# OllamaChat.EventChatterRealPlayerDistance
+#     Description: The maximum distance (in game units) a real player must be within to trigger event-based bot chatter.
+#     Default:     40.0
+OllamaChat.EventChatterRealPlayerDistance = 40.0
+
+# OllamaChat.EventChatterBotCommentChance
+#     Description: The percent chance (0–100) that an AI bot will respond to a game event another player generates.
+#     Default:     25
+OllamaChat.EventChatterBotCommentChance = 25
+
+# OllamaChat.EventChatterBotSelfCommentChance
+#     Description: The percent chance (0–100) that an AI bot will respond to a game event it generates itself.
+#     Default:     5
+OllamaChat.EventChatterBotSelfCommentChance = 5
+
+# OllamaChat.EventChatterMaxBotsPerPlayer
+#     Description: The maximum number of bots allowed to respond to a single player's event.
+#     Default:     2
+OllamaChat.EventChatterMaxBotsPerPlayer = 2
+
+# OllamaChat.EventChatterPromptTemplate
+#     Description: Deprecated no-op. Tactical uses prompts/ollama_tactical.md.
+
+#     Placeholders (named): {bot_name} {bot_level} {bot_class} {bot_race} {bot_gender} {bot_role} {bot_faction} {bot_area} {bot_zone} {bot_map} {bot_personality} {bot_personality_name} {event_type} {event_detail} {actor_name} {sentiment_info}
+#     Note: {bot_personality_name} contains the name/key of the personality (e.g., "grumpy", "helpful"), while {bot_personality} contains the full personality description text.
+OllamaChat.EventChatterPromptTemplate = "You are {bot_name}, a level {bot_level} {bot_class} ({bot_race} {bot_gender}) specializing as a {bot_role} from the {bot_faction} faction. You are currently in {bot_area}, Zone: {bot_zone}, Map: {bot_map}. Personality: {bot_personality_name}: {bot_personality}. {sentiment_info} Event: {actor_name} {event_type} {event_detail}. Respond to this specific Event that just happened in character, casually, in under 15 words. Avoid emojis, markdown, or narration."
+
+# --------------------------------------------
+# TYPING SIMULATION
+# --------------------------------------------
+
+# OllamaChat.EnableTypingSimulation
+#     Description: When enabled (1), bots will delay their responses proportionally to the message length
+#                  to simulate realistic typing behavior. The delay is calculated as:
+#                  BaseDelay + (MessageLength * DelayPerChar) milliseconds
+#                  Example: 100 character message with defaults = 1000ms + (100 * 250ms) = 26 seconds
+#     Default:     0 (false)
+OllamaChat.EnableTypingSimulation = 0
+
+# OllamaChat.TypingSimulationBaseDelay
+#     Description: Base delay in milliseconds before a bot starts "typing" a response.
+#                  This simulates the time it takes to read the message and start typing.
+#     Default:     1000
+OllamaChat.TypingSimulationBaseDelay = 1000
+
+# OllamaChat.TypingSimulationDelayPerChar
+#     Description: Additional delay in milliseconds per character in the bot's response.
+#                  Realistic typing speeds:
+#                  - 400ms per char = 2.5 chars/sec (slow/casual)
+#                  - 250ms per char = 4 chars/sec (average human)
+#                  - 150ms per char = 6.7 chars/sec (proficient)
+#                  - 100ms per char = 10 chars/sec (professional)
+#     Default:     250
+OllamaChat.TypingSimulationDelayPerChar = 250
+
+# --------------------------------------------
+# RP PERSONALITIES SYSTEM
+# --------------------------------------------
+
+# OllamaChat.EnableRPPersonalities
+#     Description: Enables or disables the use of defined roleplay personalities for AI bots.
+#                  When enabled (1), bots will respond with distinct personalities based on their assigned type.
+#                  When disabled (0), bots will use a neutral/default response style.
+#     Default:     0 (false)
+OllamaChat.EnableRPPersonalities = 0
+
+# OllamaChat.DefaultPersonalityPrompt
+#     Description: The fallback personality description used when a bot has no specific roleplay type assigned.
+#     Default:     Talk like a standard WoW player.
+OllamaChat.DefaultPersonalityPrompt = "Speak like a real WoW player from Wrath. Stay in character and use casual in-game tone."
+
+# --------------------------------------------
+# CONVERSATION HISTORY AND SNAPSHOT SYSTEM
+# --------------------------------------------
+
+# OllamaChat.EnableChatHistory
+#     Description: Enables or disables the use of Chat History.
+#     Default:     1 (true)
+OllamaChat.EnableChatHistory = 1
+
+# OllamaChat.MaxConversationHistory
+#     Description: The maximum number of recent message pairs (player + bot reply) to track per bot/player combination.
+#                  This history is stored in memory and included in the LLM prompt when the same player talks to the bot again.
+#     Default:     5
+OllamaChat.MaxConversationHistory = 5
+
+# OllamaChat.ConversationHistorySaveInterval
+#     Description: The interval (in minutes) between periodic saves of conversation history from memory to the database.
+#                  Set to 0 to disable auto-saving.
+#     Default:     10
+OllamaChat.ConversationHistorySaveInterval = 10
+
+# OllamaChat.EnableChatBotSnapshotTemplate
+#     Description: Enable or disable additional awareness context for each bot.
+#                  When enabled (1), the bot will include a snapshot of its current status and surroundings in the chat prompt.
+#                  This includes combat status, group info, known spells, active quests, line of sight objects, and nearby players.
+#                  When disabled (0), this context is not included in the chat prompt.
+#                  This is useful for bots that need to be aware of their environment and current status.
+#                  Enabling this may increase the response time and token usage of the API calls.
+#     Default:     0 (false)
+OllamaChat.EnableChatBotSnapshotTemplate = 0
+
+# OllamaChat.ChatHistoryHeaderTemplate
+#   Description: Format for header in conversation history context.
+#   Placeholders (named): {player_name}
+OllamaChat.ChatHistoryHeaderTemplate = "Recent chats with {player_name}. Use only for context. Reply to the new message."
+
+# OllamaChat.ChatHistoryLineTemplate
+#   Description: Format for each line in conversation history context.
+#   Placeholders (named): {player_name} {player_message} {bot_reply}
+OllamaChat.ChatHistoryLineTemplate = "{player_name} said: {player_message}\nYou said: {bot_reply}\n"
+
+# OllamaChat.ChatHistoryFooterTemplate
+#   Description: Format for footer in conversation history context.
+#   Placeholders (named): {player_name} {player_message}
+OllamaChat.ChatHistoryFooterTemplate = "NEW MESSAGE from {player_name}: {player_message}"
+
+# OllamaChat.ChatBotSnapshotTemplate
+#   Description: The template string for the context snapshot of the bot's surroundings and status.
+#   Placeholders (named): {combat} {group} {spells} {quests} {los} {players}
+OllamaChat.ChatBotSnapshotTemplate = "CURRENT CONTEXT:\n{combat}\n{group}\nSpells:\n{spells}\nQuests:\n{quests}\nVisible Objects:\n{los}\nNearby Players:\n{players}"
+
+# ----------------------------------------------
+# SENTIMENT TRACKING SYSTEM
+# ----------------------------------------------
+
+# Enable or disable sentiment tracking between bots and players
+# Disabled by default due to needing an extra LLM call.
+# Default: 0 (disabled)
+OllamaChat.EnableSentimentTracking = 0
+
+# Default sentiment value for new bot-player relationships
+# Range: 0.0 (hostile) to 1.0 (friendly), 0.5 = neutral
+# Default: 0.5
+OllamaChat.SentimentDefaultValue = 0.5
+
+# How much to adjust sentiment per positive/negative message
+# Range: 0.01 to 0.5 (smaller = more gradual changes)
+# Default: 0.05
+OllamaChat.SentimentAdjustmentStrength = 0.05
+
+# How often to save sentiment data to database (in minutes)
+# Set to 0 to disable periodic saving
+# Default: 10
+OllamaChat.SentimentSaveInterval = 10
+
+# Prompt template for sentiment analysis
+# Use {message} placeholder for the message to analyze
+# Default: "Analyze the sentiment of this message: \"{message}\". Respond only with: POSITIVE, NEGATIVE, or NEUTRAL."
+OllamaChat.SentimentAnalysisPrompt = "Analyze the sentiment of this message: \"{message}\". Respond only with: POSITIVE, NEGATIVE, or NEUTRAL."
+
+# Template for including sentiment information in bot prompts
+# Use {player_name} and {sentiment_value} placeholders
+# Default: "Your relationship sentiment with {player_name} is {sentiment_value} (0.0=hostile, 0.5=neutral, 1.0=friendly). Use this to guide your tone and response."
+OllamaChat.SentimentPromptTemplate = "Your relationship sentiment with {player_name} is {sentiment_value} (0.0=hostile, 0.5=neutral, 1.0=friendly). Use this to guide your tone and response."
+
+# --------------------------------------------
+# CHAT/PROMPT TEMPLATES
+# --------------------------------------------
+
+# OllamaChat.ChatPromptTemplate
+#   Description: The main template for bot chat prompts sent to the LLM.
+#   Placeholders (named): {bot_name} {bot_level} {bot_class} {bot_personality} {bot_personality_name} {player_level} {player_class} {player_name} {player_message} {extra_info} {sentiment_info}
+#   Note: {bot_personality_name} contains the name/key of the personality (e.g., "grumpy", "helpful"), while {bot_personality} contains the full personality description text.
+OllamaChat.ChatPromptTemplate = "You're a Wrath-era WoW player familiar with Vanilla and TBC. Name: {bot_name}, Level: {bot_level} {bot_class}, MAKE SURE YOU RESPOND USING YOUR PERSONALITY, WHICH IS: {bot_personality_name}: {bot_personality}. {sentiment_info} {chat_history} A level {player_level} {player_class} named {player_name} said: '{player_message}'. {extra_info} Reply naturally in under 15 words. Use authentic WoW tone. Be blunt if provoked. Be precise if giving directions. Never contradict your class, race, or location. Never act like a narrator—just respond like a player."
+
+# OllamaChat.ChatExtraInfoTemplate
+#   Description: The context/details string about the bot and player, injected into the chat prompt as the last parameter.
+#   Placeholders (named): {bot_race} {bot_gender} {bot_role} {bot_faction} {bot_guild} {bot_group_status} {bot_gold} {player_race} {player_gender} {player_role} {player_faction} {player_guild} {player_group_status} {player_gold} {player_distance} {bot_area} {bot_zone} {bot_map}
+OllamaChat.ChatExtraInfoTemplate = "Your Info: {bot_race} {bot_gender}, Spec: {bot_role}, Faction: {bot_faction}, Guild: {bot_guild}, Group: {bot_group_status}, Gold: {bot_gold}. Player Info: {player_race} {player_gender}, Spec: {player_role}, Faction: {player_faction}, Guild: {player_guild}, Group: {player_group_status}, Gold: {player_gold}, Distance: {player_distance} yards. Location: {bot_area}, Zone: {bot_zone}, Map: {bot_map}. Only respond to the new message. No commentary, no meta-talk, no prefix—just the reply."
+
+# --------------------------------------------
+# ENVIRONMENTAL/CONTEXTUAL TEMPLATES
+# --------------------------------------------
+
+# OllamaChat.EnvCommentCreature
+#   Description: A pipe-separated (|) list of template messages for when any creature is spotted nearby.
+#   Placeholders (named): {creature_name}
+OllamaChat.EnvCommentCreature = You spot a creature named '{creature_name}' and react cautiously.|You spot a creature named '{creature_name}' and assess its threat.|You spot a creature named '{creature_name}' and comment on its behavior.|You spot a creature named '{creature_name}' and consider whether to engage.|You spot a creature named '{creature_name}' and recall what you know about it.|You spot a creature named '{creature_name}' and comment on its appearance.|You spot a creature named '{creature_name}' and decide if it should be avoided.|You spot a creature named '{creature_name}' and speculate on its intentions.
+
+# OllamaChat.EnvCommentGameObject
+#   Description: A pipe-separated (|) list of template messages for when a game object is nearby.
+#   Placeholders (named): {object_name}
+OllamaChat.EnvCommentGameObject = You see {object_name} nearby and comment on its purpose.|You see {object_name} nearby and decide whether to interact.|You see {object_name} nearby and recall why it is useful.|You see {object_name} nearby and judge its condition.|You see {object_name} nearby and consider if it is valuable.|You see {object_name} nearby and explain what it might be used for.|You see {object_name} nearby and react with curiosity.|You see {object_name} nearby and decide whether to investigate.
+
+# OllamaChat.EnvCommentEquippedItem
+#   Description: A pipe-separated (|) list of template messages referencing a random equipped item.
+#   Placeholders (named): {item_name}
+OllamaChat.EnvCommentEquippedItem = Talk about your equipped item {item_name} and why you chose it.|Talk about your equipped item {item_name} and how it helps you.|Talk about your equipped item {item_name} and its strengths.|Talk about your equipped item {item_name} and any weaknesses.|Talk about your equipped item {item_name} and how it feels to use.|Talk about your equipped item {item_name} and when it is most effective.|Talk about your equipped item {item_name} and compare it to alternatives.|Talk about your equipped item {item_name} and your confidence in it.
+
+# OllamaChat.EnvCommentBagItem
+#   Description: A pipe-separated (|) list of template messages for an item in the bot's bag.
+#   Placeholders (named): {item_name}
+OllamaChat.EnvCommentBagItem = You notice a {item_name} in your bag and consider using it.|You notice a {item_name} in your bag and explain why you keep it.|You notice a {item_name} in your bag and decide if it is still useful.|You notice a {item_name} in your bag and recall where you got it.|You notice a {item_name} in your bag and judge its value.|You notice a {item_name} in your bag and think about trading it.|You notice a {item_name} in your bag and plan when to use it.|You notice a {item_name} in your bag and comment on its condition.
+
+# OllamaChat.EnvCommentBagItemSell
+#   Description: A pipe-separated (|) list of template messages for an item the bot might try to sell.
+#   Placeholders (named): {item_count} {item_name}
+OllamaChat.EnvCommentBagItemSell = You are trying persuasively to sell {item_count} of this item {item_name} by highlighting its benefits.|You are trying persuasively to sell {item_count} of this item {item_name} by stressing its rarity.|You are trying persuasively to sell {item_count} of this item {item_name} by appealing to need.|You are trying persuasively to sell {item_count} of this item {item_name} by offering a deal.|You are trying persuasively to sell {item_count} of this item {item_name} by explaining its uses.|You are trying persuasively to sell {item_count} of this item {item_name} by comparing it to others.|You are trying persuasively to sell {item_count} of this item {item_name} by creating urgency.|You are trying persuasively to sell {item_count} of this item {item_name} by praising its quality.
+
+# OllamaChat.EnvCommentSpell
+#   Description: A pipe-separated (|) list of template messages about a random known spell.
+#   Placeholders (named): {spell_name} {spell_effect} {spell_cost}
+OllamaChat.EnvCommentSpell = Discuss possible uses or strategies for '{spell_name}' in the current situation.|Discuss possible uses or strategies for '{spell_name}' against different enemies.|Discuss possible uses or strategies for '{spell_name}' when resources are low.|Discuss possible uses or strategies for '{spell_name}' and its risks.|Discuss possible uses or strategies for '{spell_name}' compared to other spells.|Discuss possible uses or strategies for '{spell_name}' in group combat.|Discuss possible uses or strategies for '{spell_name}' outside of combat.|Discuss possible uses or strategies for '{spell_name}' given its cost of {spell_cost}.
+
+# OllamaChat.EnvCommentQuestArea
+#   Description: A pipe-separated (|) list of template messages to suggest an area to quest in.
+#   Placeholders (named): {quest_area}
+OllamaChat.EnvCommentQuestArea = Suggest you could go questing around {quest_area} and explain why.|Suggest you could go questing around {quest_area} based on your level.|Suggest you could go questing around {quest_area} for rewards.|Suggest you could go questing around {quest_area} due to recent rumors.|Suggest you could go questing around {quest_area} to gain experience.|Suggest you could go questing around {quest_area} and note the dangers.|Suggest you could go questing around {quest_area} if prepared.|Suggest you could go questing around {quest_area} and set a goal.
+
+# OllamaChat.EnvCommentVendor
+#   Description: A pipe-separated (|) list of template messages when a vendor NPC is nearby.
+#   Placeholders (named): {vendor_name}
+OllamaChat.EnvCommentVendor = You spot {vendor_name} selling wares nearby and consider browsing.|You spot {vendor_name} selling wares nearby and recall past deals.|You spot {vendor_name} selling wares nearby and check your coin.|You spot {vendor_name} selling wares nearby and judge their stock.|You spot {vendor_name} selling wares nearby and decide whether to trade.|You spot {vendor_name} selling wares nearby and comment on their reputation.|You spot {vendor_name} selling wares nearby and look for upgrades.|You spot {vendor_name} selling wares nearby and compare prices.
+
+# OllamaChat.EnvCommentQuestgiver
+#   Description: A pipe-separated (|) list of template messages when a questgiver NPC is nearby.
+#   Placeholders (named): {questgiver_name} {quest_count}
+OllamaChat.EnvCommentQuestgiver = {questgiver_name} looks like they have {quest_count} quests and you evaluate which to take.|{questgiver_name} looks like they have {quest_count} quests and you judge the risk.|{questgiver_name} looks like they have {quest_count} quests and you consider rewards.|{questgiver_name} looks like they have {quest_count} quests and you recall past work.|{questgiver_name} looks like they have {quest_count} quests and you assess urgency.|{questgiver_name} looks like they have {quest_count} quests and you choose carefully.|{questgiver_name} looks like they have {quest_count} quests and you plan next steps.|{questgiver_name} looks like they have {quest_count} quests and you comment on their tone.
+
+# OllamaChat.EnvCommentBagSlots
+#   Description: A pipe-separated (|) list of template messages about available bag slots.
+#   Placeholders (named): {bag_slots}
+OllamaChat.EnvCommentBagSlots = You have {bag_slots} free bag slots left and decide how cautious to be.|You have {bag_slots} free bag slots left and plan your looting.|You have {bag_slots} free bag slots left and consider selling items.|You have {bag_slots} free bag slots left and comment on inventory pressure.|You have {bag_slots} free bag slots left and adjust priorities.|You have {bag_slots} free bag slots left and plan ahead.|You have {bag_slots} free bag slots left and evaluate risk.|You have {bag_slots} free bag slots left and think about storage.
+
+# OllamaChat.EnvCommentDungeon
+#   Description: A pipe-separated (|) list of template messages for when the bot is in a dungeon.
+#   Placeholders (named): {dungeon_name}
+OllamaChat.EnvCommentDungeon = You're in a Dungeon instance named '{dungeon_name}' and comment on the atmosphere.|You're in a Dungeon instance named '{dungeon_name}' and recall known bosses.|You're in a Dungeon instance named '{dungeon_name}' and plan your approach.|You're in a Dungeon instance named '{dungeon_name}' and assess danger.|You're in a Dungeon instance named '{dungeon_name}' and prepare mentally.|You're in a Dungeon instance named '{dungeon_name}' and comment on layout.|You're in a Dungeon instance named '{dungeon_name}' and recall past runs.|You're in a Dungeon instance named '{dungeon_name}' and set expectations.
+
+# OllamaChat.EnvCommentUnfinishedQuest
+#   Description: A pipe-separated (|) list of template messages about a random incomplete quest in the bot's log.
+#   Placeholders (named): {quest_name}
+OllamaChat.EnvCommentUnfinishedQuest = Say the name of and talk about your un-finished quest '{quest_name}' and what remains.|Say the name of and talk about your un-finished quest '{quest_name}' and its difficulty.|Say the name of and talk about your un-finished quest '{quest_name}' and why it stalled.|Say the name of and talk about your un-finished quest '{quest_name}' and your next step.|Say the name of and talk about your un-finished quest '{quest_name}' and its rewards.|Say the name of and talk about your un-finished quest '{quest_name}' and the risks.|Say the name of and talk about your un-finished quest '{quest_name}' and your motivation.|Say the name of and talk about your un-finished quest '{quest_name}' and its urgency.
+
+# --------------------------------------------
+# EVENT TEMPLATES
+# --------------------------------------------
+#
+# Event type strings are still used as lightweight labels in Tactical Ambient
+# recent_event_* context. The *_Chance keys are deprecated no-ops; use
+# OllamaChat.Tactical.AmbientEventReactionChance for tactical exposure.
+
+# OllamaChat.EventTypeDefeated
+#     Description: The event type string for when a player or bot defeats a creature.
+#     Used in: Event-based chat prompts. Example: "Kurim defeated Hogger."
+#     Default:     defeated
+OllamaChat.EventTypeDefeated = defeated
+OllamaChat.EventTypeDefeated_Chance = 1
+
+# OllamaChat.EventTypeDefeatedPlayer
+#     Description: The event type string for when a player defeats another player (PvP kill).
+#     Used in: Event-based chat prompts for PvP kills.
+#     Default:     defeated player
+OllamaChat.EventTypeDefeatedPlayer = defeated player
+OllamaChat.EventTypeDefeatedPlayer_Chance = 10
+
+# OllamaChat.EventTypePetDefeated
+#     Description: The event type string for when a player's pet defeats a creature.
+#     Used in: Event-based chat prompts.
+#     Default:     pet defeated
+OllamaChat.EventTypePetDefeated = pet defeated
+OllamaChat.EventTypePetDefeated_Chance = 2
+
+# OllamaChat.EventTypeGotItem
+#     Description: The event type string for when a player obtains a rare or higher quality item.
+#     Used in: Event-based chat when a player gets a notable item.
+#     Default:     got item
+OllamaChat.EventTypeGotItem = got item
+OllamaChat.EventTypeGotItem_Chance = 65
+
+# OllamaChat.EventTypeDied
+#     Description: The event type string for when a player dies.
+#     Used in: Event-based chat when a player death occurs.
+#     Default:     died
+OllamaChat.EventTypeDied = died
+OllamaChat.EventTypeDied_Chance = 18
+
+# OllamaChat.EventTypeCompletedQuest
+#     Description: The event type string for when a player completes a quest.
+#     Used in: Event-based chat when a quest is completed.
+#     Default:     completed quest
+OllamaChat.EventTypeCompletedQuest = completed quest
+OllamaChat.EventTypeCompletedQuest_Chance = 35
+
+# OllamaChat.EventTypeLearnedSpell
+#     Description: The event type string for when a player learns a new spell.
+#     Used in: Event-based chat for spell learning.
+#     Default:     learned spell
+OllamaChat.EventTypeLearnedSpell = learned spell
+OllamaChat.EventTypeLearnedSpell_Chance = 2
+
+# OllamaChat.EventTypeRequestedDuel
+#     Description: The event type string for when a player requests a duel.
+#     Used in: Event-based chat on duel request.
+#     Default:     requested to duel
+OllamaChat.EventTypeRequestedDuel = requested to duel
+OllamaChat.EventTypeRequestedDuel_Chance = 28
+
+# OllamaChat.EventTypeStartedDueling
+#     Description: The event type string for when a duel starts between players.
+#     Used in: Event-based chat when a duel begins.
+#     Default:     started dueling
+OllamaChat.EventTypeStartedDueling = started dueling
+OllamaChat.EventTypeStartedDueling_Chance = 10
+
+# OllamaChat.EventTypeWonDuel
+#     Description: The event type string for when a player wins a duel.
+#     Used in: Event-based chat for duel win.
+#     Default:     won duel against
+OllamaChat.EventTypeWonDuel = won duel against
+OllamaChat.EventTypeWonDuel_Chance = 85
+
+# OllamaChat.EventTypeLeveledUp
+#     Description: The event type string for when a player levels up.
+#     Used in: Event-based chat on level up.
+#     Default:     leveled up
+OllamaChat.EventTypeLeveledUp = leveled up
+OllamaChat.EventTypeLeveledUp_Chance = 75
+
+# OllamaChat.EventTypeAchievement
+#     Description: The event type string for when a player earns an achievement.
+#     Used in: Event-based chat for achievements.
+#     Default:     earned achievement
+OllamaChat.EventTypeAchievement = earned achievement
+OllamaChat.EventTypeAchievement_Chance = 75
+
+# OllamaChat.EventTypeUsedObject
+#     Description: The event type string for when a player uses a game object.
+#     Used in: Event-based chat when using objects in the world.
+#     Default:     used object
+OllamaChat.EventTypeUsedObject = used object
+OllamaChat.EventTypeUsedObject_Chance = 10
+
+# OllamaChat.EventCooldownTime
+#     Description: The cooldown time (in seconds) for bots to respond to an event.
+#     Default:     10
+OllamaChat.EventCooldownTime = 10
+
+# --------------------------------------------
+# GUILD-SPECIFIC RANDOM CHATTER
+# --------------------------------------------
+#
+# DEPRECATED / no-op: old guild random/event chatter was removed with the
+# legacy local Ollama chat path. Tactical Ambient Mode may speak in party/say
+# when the local model sees useful nearby context.
+
+# OllamaChat.EnableGuildRandomAmbientChatter
+#     Description: Deprecated no-op.
+#     Default:     1 (true)
+OllamaChat.EnableGuildRandomAmbientChatter = 1
+
+# OllamaChat.GuildRandomChatterChance
+#     Description: Percent chance (0-100) for a bot to send a random guild chat message when eligible.
+#     Default:     10
+OllamaChat.GuildRandomChatterChance = 85
+
+# OllamaChat.EnableGuildEventChatter
+#     Description: Deprecated no-op.
+#     Default: 1 (true)
+OllamaChat.EnableGuildEventChatter = 1
+
+# OllamaChat.GuildChatterBotCommentChance
+#     Description: Percentage chance (0-100) for guild bots to comment on guild events.
+#                  This applies to events like level ups, gear acquisition, dungeon completion.
+#                  Lower values = less frequent guild event responses.
+#     Default: 65
+OllamaChat.GuildChatterBotCommentChance = 65
+
+# OllamaChat.GuildChatterMaxBotsPerEvent
+#     Description: Maximum number of guild bots that can respond to a single guild event.
+#                  Prevents spam when multiple guild bots want to comment on the same event.
+#                  Example: If set to 2, only 2 bots max will respond to a member leveling up.
+#     Default: 2
+OllamaChat.GuildChatterMaxBotsPerEvent = 2
+
+# --------------------------------------------
+# GUILD ENVIRONMENT COMMENT TEMPLATES
+# --------------------------------------------
+
+# OllamaChat.GuildEnvCommentGuildMember
+#     Description: Templates for commenting on guild members. Pipe-separated (|) list.
+#     Placeholders: {member_name}
+#     Example: "I wonder what {member_name} is up to today."
+#     Default: (empty - no guild member comments)
+OllamaChat.GuildEnvCommentGuildMember = I wonder what {member_name} is up to today.|{member_name} is a solid guild member.|Haven't seen {member_name} around much lately.
+
+# OllamaChat.GuildEnvCommentGuildRank
+#     Description: Templates for commenting on guild ranks. Pipe-separated (|) list.
+#     Placeholders: {guild_rank}
+#     Example: "Being a {guild_rank} has its perks."
+#     Default: (empty - no guild rank comments)
+OllamaChat.GuildEnvCommentGuildRank = Being a {guild_rank} has its perks.|The {guild_rank} rank comes with responsibilities.|I'm proud to be a {guild_rank} in this guild.
+
+# OllamaChat.GuildEnvCommentGuildBank
+#     Description: Templates for commenting on guild bank status. Pipe-separated (|) list.
+#     Placeholders: {bank_gold}
+#     Example: "Guild bank has {bank_gold} gold saved up."
+#     Default: (empty - no guild bank comments)
+OllamaChat.GuildEnvCommentGuildBank = Guild bank has {bank_gold} gold saved up.|We should check what's in the guild bank.|{bank_gold} gold in the guild bank, not bad.|The guild bank could use some donations.
+
+# OllamaChat.GuildEnvCommentGuildMOTD
+#     Description: Templates for commenting on guild message of the day. Pipe-separated (|) list.
+#     Placeholders: {guild_motd}
+#     Example: "Guild MOTD says: {guild_motd}"
+#     Default: (empty - no guild MOTD comments)
+OllamaChat.GuildEnvCommentGuildMOTD = Guild MOTD says: {guild_motd}|Did everyone see the guild message? {guild_motd}|The officers updated the MOTD: {guild_motd}
+
+# OllamaChat.GuildEnvCommentGuildInfo
+#     Description: Templates for commenting on guild information. Pipe-separated (|) list.
+#     Placeholders: {guild_info}
+#     Example: "Our guild info reads: {guild_info}"
+#     Default: (empty - no guild info comments)
+OllamaChat.GuildEnvCommentGuildInfo = Our guild info reads: {guild_info}|Check out the guild info if you haven't: {guild_info}|The guild description says it all: {guild_info}
+
+# OllamaChat.GuildEnvCommentGuildOnlineMembers
+#     Description: Templates for commenting on online guild members. Pipe-separated (|) list.
+#     Placeholders: {online_count}, {total_count}
+#     Example: "We have {online_count} out of {total_count} guild members online."
+#     Default: (empty - no online member comments)
+OllamaChat.GuildEnvCommentGuildOnlineMembers = We have {online_count} out of {total_count} guild members online.|{online_count} guildies are online right now.|Nice to see {online_count} guild members active today.|Only {online_count} of us online from the guild.
+
+# --------------------------------------------
+# GUILD RANDOM CHATTER PROMPTS
+# --------------------------------------------
+
+# OllamaChat.GuildEnvCommentGuildRaid
+#     Description: Templates for commenting on guild raid activity. Pipe-separated (|) list.
+#     Example: "Looking forward to the next guild raid!"
+#     Default: (empty - no raid comments)
+OllamaChat.GuildEnvCommentGuildRaid = Looking forward to the next guild raid!|Hope we get some good loot in the next raid.|Who's ready for raid night?
+
+# OllamaChat.GuildEnvCommentGuildEndgame
+#     Description: Templates for commenting on endgame content. Pipe-separated (|) list.
+#     Example: "Endgame content is tough but fun."
+#     Default: (empty - no endgame comments)
+OllamaChat.GuildEnvCommentGuildEndgame = Endgame content is tough but fun.|We need more people for endgame runs.|Anyone up for some endgame challenges?
+
+# OllamaChat.GuildEnvCommentGuildStrategy
+#     Description: Templates for discussing guild strategies. Pipe-separated (|) list.
+#     Example: "We should try a new strategy for the next boss."
+#     Default: (empty - no strategy comments)
+OllamaChat.GuildEnvCommentGuildStrategy = We should try a new strategy for the next boss.|Strategy is key to our success.|Let's discuss tactics for the next fight.
+
+# OllamaChat.GuildEnvCommentGuildGroup
+#     Description: Templates for group/quest/grind activity. Pipe-separated (|) list.
+#     Example: "Anyone want to group up for quests?"
+#     Default: (empty - no group comments)
+OllamaChat.GuildEnvCommentGuildGroup = Anyone want to group up for quests?|Grinding with guildies is more fun.|Let's form a group for dailies.
+
+# OllamaChat.GuildEnvCommentGuildPvP
+#     Description: Templates for guild PvP activity. Pipe-separated (|) list.
+#     Example: "Who's up for some PvP tonight?"
+#     Default: (empty - no PvP comments)
+OllamaChat.GuildEnvCommentGuildPvP = Who's up for some PvP tonight?|PvP with the guild is always intense.|Let's queue for some battlegrounds together.
+
+# OllamaChat.GuildEnvCommentGuildCommunity
+#     Description: Templates for community/social comments. Pipe-separated (|) list.
+#     Example: "Guild community is the best part of the game."
+#     Default: (empty - no community comments)
+OllamaChat.GuildEnvCommentGuildCommunity = Guild community is the best part of the game.|Love hanging out with everyone here.|Our guild socials are always a blast.
+
+# --------------------------------------------
+# GUILD EVENT TYPES
+# --------------------------------------------
+
+# OllamaChat.GuildEventTypeEpicGear
+#     Description: Event type for guild epic gear acquisition announcements.
+#                  Creates excitement and congratulations for rare loot.
+#     Example:     "Grats on the epic loot!"
+#     Default:     guild member got epic gear
+OllamaChat.GuildEventTypeEpicGear = guild member got epic gear
+OllamaChat.GuildEventTypeEpicGear_Chance = 95
+
+# OllamaChat.GuildEventTypeRareGear
+#     Description: Event type for guild rare gear acquisition announcements.
+#                  Triggered when a guild member obtains rare (blue) quality weapons or armor.
+#                  Only announces equipment, not consumables or trade goods.
+#     Example:     "Nice blue gear upgrade!"
+#     Default:     guild member got rare gear
+OllamaChat.GuildEventTypeRareGear = guild member got rare gear
+OllamaChat.GuildEventTypeRareGear_Chance = 65
+
+# OllamaChat.GuildEventTypeGuildJoin
+#     Description: Event type for guild member join announcements.
+#                  Triggered when a new player joins the guild.
+#                  Welcomes new members to the guild community.
+#     Example:     "Welcome to the guild!"
+#     Default:     member joined guild
+OllamaChat.GuildEventTypeGuildJoin = member joined guild
+OllamaChat.GuildEventTypeGuildJoin_Chance = 12
+
+# OllamaChat.GuildEventTypeGuildLogin
+#     Description: Event type for guild member login announcements.
+#                  Triggered when a non-bot guild member logs in.
+#                  Welcomes returning members to the guild.
+#     Example:     "{actor_name} has logged in to the guild!"
+#     Default:     member logged in
+OllamaChat.GuildEventTypeGuildLogin = member logged in
+OllamaChat.GuildEventTypeGuildLogin_Chance = 85
+
+# OllamaChat.GuildEventTypeGuildLeave
+#     Description: Event type for guild member leave announcements.
+#                  Triggered when a player leaves the guild.
+#                  Acknowledges departing members.
+#     Example:     "Sad to see them go."
+#     Default:     member left guild
+OllamaChat.GuildEventTypeGuildLeave = member left guild
+OllamaChat.GuildEventTypeGuildLeave_Chance = 85
+
+# OllamaChat.GuildEventTypeGuildPromotion
+#     Description: Event type for guild member promotion announcements.
+#                  Triggered when a guild member gets promoted to a higher rank.
+#                  Celebrates advancement within the guild hierarchy.
+#     Example:     "Congrats on the promotion!"
+#     Default:     member got promoted
+OllamaChat.GuildEventTypeGuildPromotion = member got promoted
+OllamaChat.GuildEventTypeGuildPromotion_Chance = 25
+
+# OllamaChat.GuildEventTypeGuildDemotion
+#     Description: Event type for guild member demotion announcements.
+#                  Triggered when a guild member gets demoted to a lower rank.
+#                  Handles rank changes sensitively.
+#     Example:     "Rank changes happen."
+#     Default:     member got demoted
+OllamaChat.GuildEventTypeGuildDemotion = member got demoted
+OllamaChat.GuildEventTypeGuildDemotion_Chance = 5
+
+# OllamaChat.GuildEventTypeGuildAchievement
+#     Description: Event type for guild member achievement announcements.
+#                  Triggered when a real (non-bot) guild member earns an achievement.
+#                  Celebrates player accomplishments in the guild.
+#     Example:     "{actor_name} just earned an achievement!"
+#     Default:     member earned achievement
+OllamaChat.GuildEventTypeGuildAchievement = member earned achievement
+OllamaChat.GuildEventTypeGuildAchievement_Chance = 85
+
+# OllamaChat.GuildEventTypeLevelUp
+#     Description: Event type for guild member level up announcements.
+#                  Triggered when a guild member levels up.
+#                  Celebrates player progression in the guild.
+#     Example:     "Grats on the level up!"
+#     Default:     member leveled up
+OllamaChat.GuildEventTypeLevelUp = member leveled up
+OllamaChat.GuildEventTypeLevelUp_Chance = 95
+
+# OllamaChat.GuildEventTypeDungeonComplete
+#     Description: Event type for guild dungeon completion announcements.
+#                  Triggered when a guild group completes a dungeon.
+#                  Recognizes group achievements in PvE content.
+#     Example:     "Dungeon run complete!"
+#     Default:     guild group completed a dungeon
+OllamaChat.GuildEventTypeDungeonComplete = guild group completed a dungeon
+OllamaChat.GuildEventTypeDungeonComplete_Chance = 85
+
+# --------------------------------------------
+# RAG (Retrieval-Augmented Generation) SYSTEM
+# --------------------------------------------
+
+# OllamaChat.EnableRAG
+#     Description: Enable or disable the RAG (Retrieval-Augmented Generation) feature.
+#                  When enabled, the bot will analyze player messages and retrieve relevant information
+#                  from JSON knowledge base files to provide more accurate and detailed responses.
+#     Default:     0 (false)
+OllamaChat.EnableRAG = 0
+
+
+
+# OllamaChat.RAGDataPath
+#     Description: Path to the directory containing RAG JSON data files.
+#                  This should be a relative path from the server's working directory.
+#                  For AzerothCore installations, this is typically ../../../modules/mod-ollama-chat/data/rag/
+#                  The system will load all .json files from this directory.
+#     Default:     ../../../modules/mod-ollama-chat/data/rag/
+OllamaChat.RAGDataPath = ../../../modules/mod-ollama-chat/data/rag/
+
+
+
+# OllamaChat.RAGMaxRetrievedItems
+#     Description: Maximum number of relevant information items to retrieve and include in the prompt.
+#                  Higher values provide more context but may exceed token limits.
+#     Default:     3
+OllamaChat.RAGMaxRetrievedItems = 3
+
+
+
+# OllamaChat.RAGSimilarityThreshold
+#     Description: Minimum similarity score (0.0-1.0) required for information to be considered relevant.
+#                  Lower values will include more information but may be less accurate.
+#                  Higher values will be more precise but may miss relevant information.
+#                  Recommended range: 0.2-0.4 for good balance of relevance and coverage.
+#     Default:     0.3
+OllamaChat.RAGSimilarityThreshold = 0.3
+
+
+
+# OllamaChat.RAGPromptTemplate
+#     Description: Template for including RAG information in bot prompts.
+#     Placeholders (named): {rag_info}
+OllamaChat.RAGPromptTemplate = "RELEVANT INFORMATION:\n{rag_info}\nUse this information to provide accurate and detailed responses when applicable."
+
+# --------------------------------------------
+# GATEWAY AGENT BOT
+# --------------------------------------------
+# Route specific bots to an external AI agent gateway (OpenAI-compatible API)
+# instead of the local Ollama LLM. Gateway bots respond only to whispers
+# containing the trigger keyword.
+
+# OllamaChat.Gateway.Enable
+#     Description: Enable the gateway agent bot feature.
+#     Default:     0 (false)
+OllamaChat.Gateway.Enable = 0
+
+# OllamaChat.Gateway.Url
+#     Description: Full URL of the OpenAI-compatible chat completions endpoint.
+#     Example:     http://192.168.100.10:18789/v1/chat/completions
+#     Default:     (empty)
+OllamaChat.Gateway.Url = ""
+
+# OllamaChat.Gateway.BearerToken
+#     Description: Bearer token for gateway API authentication.
+#     Default:     (empty)
+OllamaChat.Gateway.BearerToken = ""
+
+# OllamaChat.Gateway.TriggerKeyword
+#     Description: Keyword that must be present in the whisper to route to the gateway.
+#                  The keyword is stripped from the message before sending.
+#                  Case-insensitive. Example: whisper "claude check example.com" → sends "check example.com".
+#                  Set to an EMPTY string to disable the keyword gate — every whisper to a
+#                  gateway bot will be routed through unchanged. Useful if you want the gateway
+#                  to feel like a normal chatbot instead of a prefix-triggered command.
+#                  Public-channel gating (see PublicChannelMode) still applies on say/yell/general
+#                  even when the keyword is empty.
+#     Default:     claude
+OllamaChat.Gateway.TriggerKeyword = "claude"
+
+# OllamaChat.Gateway.BotGUIDs
+#     Description: Comma-separated list of character GUIDs (from the characters table) that
+#                  should act as gateway agent bots. Only these bots route to the gateway.
+#     Example:     12345,67890
+#     Default:     (empty)
+OllamaChat.Gateway.BotGUIDs = ""
+
+# OllamaChat.Gateway.SystemPrompt
+#     Description: Optional system prompt sent with every gateway request.
+#     Default:     (empty)
+OllamaChat.Gateway.SystemPrompt = ""
+
+# OllamaChat.Gateway.Model
+#     Description: Model identifier sent in the gateway API request.
+#     Default:     openclaw
+OllamaChat.Gateway.Model = "openclaw"
+
+# OllamaChat.Gateway.Scopes
+#     Description: Value for the x-openclaw-scopes header sent with gateway requests.
+#     Default:     operator.admin,operator.read,operator.write
+OllamaChat.Gateway.Scopes = "operator.admin,operator.read,operator.write"
+
+# OllamaChat.Gateway.BotOverrides
+#     Description: Per-bot gateway overrides. Each bot gets its own URL, token, and model.
+#                  Format: "GUID:URL:TOKEN:MODEL" entries separated by pipe (|).
+#                  Bots listed here are automatically added to the gateway bot set.
+#                  Bots NOT listed here fall back to the global Gateway.Url/BearerToken/Model.
+#     Example:     20007:http://192.168.100.12:18789/v1/chat/completions:mytoken123:anthropic/claude-opus-4-6|20008:http://192.168.100.14:18789/v1/chat/completions:othertoken:openclaw
+#     Default:     (empty)
+OllamaChat.Gateway.BotOverrides = ""
+
+# OllamaChat.Gateway.WhitelistAccountIds
+#     Description: Comma-separated WoW account IDs allowed to trigger gateway bot responses.
+#                  When EMPTY, ALL players on the server can trigger gateway bots (a WARNING is logged).
+#                  When non-empty, only whispers from these accounts are routed to the gateway;
+#                  other players stay silent unless another configured route handles the message.
+#                  Account ID is the right granularity because one account covers all its characters.
+#     How to find your account ID:
+#         docker exec ac-database mysql -uroot -ppassword -e \
+#             "SELECT id, username FROM acore_auth.account;"
+#     Example:     1,5,12
+#     Default:     (empty — all players allowed)
+OllamaChat.Gateway.WhitelistAccountIds = ""
+
+# OllamaChat.Gateway.FallbackToOllama
+#     Description: DEPRECATED / no-op. The legacy direct local-Ollama chat
+#                  fallback was removed. Missing gateway keyword means the bot
+#                  stays silent.
+#     Default:     0 (false)
+OllamaChat.Gateway.FallbackToOllama = 0
+
+# OllamaChat.Gateway.MaxHistory
+#     Description: Number of conversation history pairs (user+assistant) to include
+#                  in gateway API requests. Gateway models handle larger contexts,
+#                  so this can be higher than the Ollama history setting.
+#     Default:     10
+OllamaChat.Gateway.MaxHistory = 10
+
+# OllamaChat.Gateway.Type
+#     Description: Backend type for bots that don't specify 'gatewayType' in BotOverridesJson.
+#                    openclaw — full-fat agent with its own baked-in tools. Request-body
+#                               tools[] is ignored; EnableToolUse has no effect. Leave tool
+#                               wiring to the openclaw agent itself.
+#                    synthiq — thin Claude Agent SDK wrapper. Honors request-body tools[];
+#                               EnableToolUse can drive the in-game tool loop (get_bot_state,
+#                               get_zone_info, whisper_player, ...).
+#                  Per-bot 'gatewayType' in BotOverridesJson wins over this global default.
+#                  Unknown values fall back to 'openclaw' silently.
+#     Default:     openclaw
+OllamaChat.Gateway.Type = "openclaw"
+
+# --------------------------------------------
+# GATEWAY HARDENING & SESSIONS (PR1)
+# --------------------------------------------
+
+# OllamaChat.Gateway.TimeoutSeconds
+#     Description: HTTP timeout for gateway requests, in seconds. Agent models that use
+#                  tools may take a while; lower this if you want fast-fail behavior.
+#     Default:     300
+OllamaChat.Gateway.TimeoutSeconds = 300
+
+# OllamaChat.Gateway.FallbackOnError
+#     Description: DEPRECATED / no-op. The legacy direct local-Ollama fallback
+#                  was removed; gateway errors are audited/logged and the bot
+#                  stays silent for that request.
+#     Default:     0 (false)
+OllamaChat.Gateway.FallbackOnError = 0
+
+# OllamaChat.Gateway.MaxConcurrentRequests
+#     Description: Maximum concurrent in-flight gateway requests across the whole module.
+#                  Excess requests are dropped (the bot stays silent for that whisper).
+#                  0 = unlimited.
+#     Default:     4
+OllamaChat.Gateway.MaxConcurrentRequests = 4
+
+# OllamaChat.Gateway.MinSecondsBetweenRequests
+#     Description: Per-(bot, player) cooldown in seconds. Whispers that arrive sooner than
+#                  this after the previous gateway request from the same player to the same bot
+#                  are dropped. Protects gateway tokens / cost from whisper spam.
+#                  0 = no cooldown.
+#     Default:     5
+OllamaChat.Gateway.MinSecondsBetweenRequests = 5
+
+# OllamaChat.Gateway.UserPrefix
+#     Description: Prefix for the OpenAI 'user' field sent on each request. The bot's GUID is
+#                  appended. Useful to disambiguate bots across realms in upstream gateway logs.
+#     Default:     wow-bot-
+OllamaChat.Gateway.UserPrefix = "wow-bot-"
+
+# OllamaChat.Gateway.MaxWhisperChunkChars
+#     Description: Long agent responses are split into multiple whispers so they don't get truncated
+#                  by WoW's per-message length limit (~255 chars). The splitter prefers sentence/whitespace
+#                  boundaries within this character window.
+#                  Set to 0 to disable chunking and send the whole response as one whisper.
+#     Default:     250
+OllamaChat.Gateway.MaxWhisperChunkChars = 250
+
+# OllamaChat.Gateway.UseSessionPersistence
+#     Description: Send the x-synthiq-session-key header so the gateway can reuse a warm subprocess
+#                  per (bot, player) pair. The agent retains full context across whispers without
+#                  the WoW module having to resend it. Strongly recommended when talking to agents
+#                  that use tools or memory.
+#     Default:     0 (false)
+OllamaChat.Gateway.UseSessionPersistence = 0
+
+# OllamaChat.Gateway.SessionKeyTemplate
+#     Description: Template for the session key. Supports {botGuid} and {playerGuid} substitutions.
+#                  Anything that produces a stable per-(bot, player) string works.
+#     Default:     wow-{botGuid}-{playerGuid}
+OllamaChat.Gateway.SessionKeyTemplate = "wow-{botGuid}-{playerGuid}"
+
+# OllamaChat.Gateway.SkipHistoryWhenSession
+#     Description: When session persistence is on, the gateway already remembers the conversation
+#                  server-side. Re-sending local history wastes tokens. Set to 0 to keep sending it
+#                  anyway (useful if the gateway is occasionally restarted and warm sessions die).
+#     Default:     1 (true)
+OllamaChat.Gateway.SkipHistoryWhenSession = 1
+
+# --------------------------------------------
+# GATEWAY STREAMING (PR2)
+# --------------------------------------------
+
+# OllamaChat.Gateway.UseStreaming
+#     Description: Use SSE streaming responses (`stream: true`). The bot whispers chunks
+#                  as they arrive instead of waiting for the full response, which makes
+#                  long agent answers feel much more responsive.
+#                  Requires the upstream gateway to support OpenAI-style SSE (Synthiq does).
+#     Default:     0 (false)
+OllamaChat.Gateway.UseStreaming = 0
+
+# OllamaChat.Gateway.StreamWhisperOnSentence
+#     Description: When streaming, emit a whisper at every sentence boundary (., !, ?).
+#                  When 0, the streamer only emits when the buffer hits MaxWhisperChunkChars.
+#                  Sentence mode reads more naturally; size-only mode batches more text per
+#                  whisper.
+#     Default:     1 (true)
+OllamaChat.Gateway.StreamWhisperOnSentence = 1
+
+# --------------------------------------------
+# GATEWAY PER-AGENT PRESETS, PERSONALITY, LANGUAGE (PR3)
+# --------------------------------------------
+
+# OllamaChat.Gateway.AgentByPersonality
+#     Description: Map bot personality keys to upstream model/agent identifiers.
+#                  Per-bot URL/Token/Model overrides (BotOverrides) still win for an explicit bot;
+#                  this is the next-most-specific layer below those.
+#                  Format: "personality1=model1|personality2=model2"
+#     Example:     "hostile=agent:roastmaster|friendly=agent:helpful|lore=agent:lore-master"
+#     Default:     (empty — every bot uses Gateway.Model)
+OllamaChat.Gateway.AgentByPersonality = ""
+
+# OllamaChat.Gateway.MergePersonalityPrompt
+#     Description: Prepend the bot's personality prompt (from mod_ollama_chat_personality_templates)
+#                  to the gateway system prompt so gateway bots stay in-character.
+#                  Set to 0 if your upstream agent presets already encode personality.
+#     Default:     1 (true)
+OllamaChat.Gateway.MergePersonalityPrompt = 1
+
+# OllamaChat.Gateway.DetectLanguage
+#     Description: Heuristic-detect the player's whisper language and inject a language hint
+#                  into the system prompt. Currently distinguishes Cyrillic ("Russian")
+#                  from everything else ("English"). Cheap insurance against the model
+#                  switching languages mid-conversation.
+#     Default:     0 (false)
+OllamaChat.Gateway.DetectLanguage = 0
+
+# OllamaChat.Gateway.LanguageHintTemplate
+#     Description: Template appended to the system prompt when DetectLanguage = 1.
+#                  Supports the {lang} placeholder.
+#     Default:     "Always respond to the user in {lang}."
+OllamaChat.Gateway.LanguageHintTemplate = "Always respond to the user in {lang}."
+
+# --------------------------------------------
+# GATEWAY CHANNELS & MENTION MODE (PR4)
+# --------------------------------------------
+
+# OllamaChat.Gateway.AllowedChannels
+#     Description: Comma-separated channel sources where the gateway path is active.
+#                  Valid: whisper, party, raid, guild, officer, say, yell, general, none
+#                  Note: 'general' (custom channels) is whisper-only routed today —
+#                        full general-channel response routing is a future enhancement.
+#                  'none' is an explicit chat-off sentinel: disables ALL
+#                  chat-triggered gateway + classifier traffic (robot-first mode,
+#                  where an external MCP agent is the only intent source). An
+#                  EMPTY value does NOT mean off — it falls back to "whisper"
+#                  for back-compat. Escalations (Strategic.*) and talk_to_leader
+#                  injection are unaffected by this list.
+#     Default:     whisper
+OllamaChat.Gateway.AllowedChannels = "whisper"
+
+# OllamaChat.Gateway.PublicChannelMode
+#     Description: How to gate gateway responses on PUBLIC channels (say/yell/general).
+#                  Private channels (whisper/party/guild/raid/officer) always require the keyword.
+#                    "keyword" — message must contain Gateway.TriggerKeyword (default behavior)
+#                    "mention" — message must mention the bot's name (case-insensitive substring)
+#                    "both"    — both required
+#     Default:     keyword
+OllamaChat.Gateway.PublicChannelMode = "keyword"
+
+# OllamaChat.Gateway.PrivateChannelMentionRequired
+#     Description: For non-whisper private channels (party/raid/guild/officer), require the
+#                  message to mention the bot's name (case-insensitive substring). Without
+#                  this gate, an empty TriggerKeyword would make the bot react to every line
+#                  in party chat — bad UX, expensive on tokens. Whisper is unaffected.
+#                  Combines AND with TriggerKeyword if both are set.
+#                  Set to 0 if you want the legacy behavior (keyword-only gating in party).
+#     Default:     1
+OllamaChat.Gateway.PrivateChannelMentionRequired = 1
+
+# OllamaChat.Gateway.MentionExemptBots
+#     Description: Comma-separated list of bot names (case-insensitive) that BYPASS the
+#                  PrivateChannelMentionRequired gate in non-whisper private channels
+#                  (party/raid/guild/officer). Listed bots respond to any party-chat line
+#                  without needing their name typed in the message. Keyword gate (if set)
+#                  still applies. Whisper and public-channel gating are unaffected.
+#                  Use for your "always-listening" agent (e.g. a squad leader) while
+#                  keeping mention-required behavior for the rest of the roster.
+#                  Example: "Claude,Clawd"
+#     Default:     ""
+OllamaChat.Gateway.MentionExemptBots = ""
+
+# OllamaChat.Gateway.Promote.Enable
+#     Description: Bot promotion. Any playerbot OUTSIDE Gateway.BotGUIDs gets the
+#                  strategic lane (same gateway, model and tools as the fleet)
+#                  while a whitelisted human talks to it:
+#                    chat  - you whisper it, or name it as a whole word in a
+#                            channel from Gateway.Promote.Channels. It stays
+#                            smart for Gateway.Promote.ChatTtlSec after your
+#                            LAST such line, then drops back to a stock bot.
+#                    party - it is in YOUR group (you invited it). No timeout;
+#                            you become its master, it joins the tactical loop,
+#                            and the fleet leader's leader_* tools can command it.
+#                            Kick it and it is a stock bot again until you speak
+#                            to it. Derived from live groups, survives restarts.
+#                  Outside whisper a promoted bot answers ONLY lines that name it.
+#                  Requires Gateway.WhitelistAccountIds (empty = promotion off).
+#                  Fleet (Fleet.LeaderGuid/MemberGuids) and Botmaster are never
+#                  promoted. Runbook: docs/bot-promotion.md.
+#     Default:     0
+OllamaChat.Gateway.Promote.Enable = 0
+
+# OllamaChat.Gateway.Promote.ChatTtlSec
+#     Description: Idle window (seconds, floor 30) a chat-promoted bot keeps the
+#                  strategic lane after the last line that addressed it.
+#     Default:     600
+OllamaChat.Gateway.Promote.ChatTtlSec = 600
+
+# OllamaChat.Gateway.Promote.MaxChatBots
+#     Description: Concurrent chat promotions. Addressing one more evicts the bot
+#                  addressed least recently. Party guests are not counted.
+#     Default:     5
+OllamaChat.Gateway.Promote.MaxChatBots = 5
+
+# OllamaChat.Gateway.Promote.PartyEnable
+#     Description: Promote every playerbot in a whitelisted human's group
+#                  (see Promote.Enable, "party").
+#     Default:     1
+OllamaChat.Gateway.Promote.PartyEnable = 1
+
+# OllamaChat.Gateway.Promote.TemplateBotGuid
+#     Description: Promoted bots have no gateway override of their own; they use
+#                  a COPY of this bot's entry in the overrides file (url, token,
+#                  model, gatewayType, headers, allowedTools). 0 = Fleet.LeaderGuid.
+#                  If the template has no override, promotion logs an error and
+#                  stays off (Gateway.Url is usually empty).
+#     Default:     0
+OllamaChat.Gateway.Promote.TemplateBotGuid = 0
+
+# OllamaChat.Gateway.Promote.Channels
+#     Description: Chat sources that promote a bot and reach a promoted bot.
+#                  Same names as Gateway.AllowedChannels (whisper, party, raid,
+#                  guild, officer, say, yell, general). Independent of
+#                  AllowedChannels, which still governs Gateway.BotGUIDs.
+#                  Replies: whisper/party/raid/guild/say/yell answer in place;
+#                  General/Trade/LFG answers by whisper.
+#     Default:     "whisper,party,raid,guild,officer,say,yell,general"
+OllamaChat.Gateway.Promote.Channels = "whisper,party,raid,guild,officer,say,yell,general"
+
+# OllamaChat.Gateway.AutoClaimOnLogin
+#     Description: When a whitelisted real player logs in, every bot in
+#                  OllamaChat.Gateway.BotGUIDs is removed from whoever currently
+#                  owns it (rndbot manager or another master) and re-spawned
+#                  with the logging-in player as master. On that player's
+#                  logout, the bots are released back to rndbot status so the
+#                  fleet stays online for Overlord's SystemMasterGuid fallback
+#                  to keep driving admin commands via MCP.
+#
+#                  Intended flow for an autonomous deployment where the same
+#                  human sometimes logs in to play alongside the fleet:
+#                    - server boot → Overlord auto-login → fleet spawns as
+#                      rndbots (no per-bot master)
+#                    - operator logs in as Raz → AutoClaim hands the bots to
+#                      Raz; they join the party, respond to party chat, follow
+#                      the player around
+#                    - operator logs out → AutoClaim releases the bots back to
+#                      rndbot; the agentic MCP pipeline keeps working
+#
+#                  Takes effect on the next player login; no reload needed for
+#                  the toggle itself, but the accountId list is re-parsed on
+#                  `.ollama reload`.
+#     Default:     0
+OllamaChat.Gateway.AutoClaimOnLogin = 0
+
+# OllamaChat.Gateway.AutoClaimAccountIds
+#     Description: Comma-separated list of acore_auth account ids that are
+#                  allowed to auto-claim gateway bots on login. Non-whitelisted
+#                  accounts fall through the hook silently — nobody else gets
+#                  their bots yanked.
+#                  Look up an account id with:
+#                    SELECT id FROM acore_auth.account WHERE username='OPERATOR';
+#                  Example: "1001"
+#     Default:     ""
+OllamaChat.Gateway.AutoClaimAccountIds = ""
+
+# --------------------------------------------
+# GATEWAY JSON CONFIG (PR5)
+# --------------------------------------------
+
+# OllamaChat.Gateway.BotOverridesJson
+#     Description: Per-bot gateway overrides expressed as a JSON array. Preferred over the
+#                  legacy BotOverrides format because it handles colons in URLs cleanly and
+#                  supports per-bot custom headers and (future) per-bot tool allowlists.
+#                  When this is non-empty, BotOverrides is ignored (a warning is logged).
+#                  Each entry must include 'guid'. Other fields are optional.
+#                  Schema:
+#                    [
+#                      {
+#                        "guid":   12345,
+#                        "url":    "http://host:port/v1/chat/completions",
+#                        "token":  "bearer-token",
+#                        "model":  "agent:lore-master",
+#                        "headers":{"x-synthiq-agent": "lore"},
+#                        "tools":  ["get_zone","get_loot"]
+#                      }
+#                    ]
+#     Default:     (empty)
+OllamaChat.Gateway.BotOverridesJson = ""
+
+# OllamaChat.Gateway.BotOverridesJsonFile
+#     Description: Read BotOverridesJson from an external file path. PREFERRED over the
+#                  inline BotOverridesJson key because AzerothCore's Config strips ALL
+#                  double-quote characters from inline values, making embedded JSON
+#                  unusable. Reading from a file sidesteps that issue entirely.
+#                  Priority: BotOverridesJsonFile > BotOverridesJson > BotOverrides.
+#                  Path is read inside the docker container — typically
+#                  '/azerothcore/env/dist/etc/modules/<your-file>.json'.
+#     Default:     (empty — no external file used)
+#     Example:     "/azerothcore/env/dist/etc/modules/gateway_overrides.json"
+OllamaChat.Gateway.BotOverridesJsonFile = ""
+
+# --------------------------------------------
+# GATEWAY TOOL USE (PR6)
+# --------------------------------------------
+
+# OllamaChat.Gateway.EnableToolUse
+#     Description: Send OpenAI-style tool definitions in the request and dispatch any
+#                  tool_calls returned by the model. The bot can call C++ functions to
+#                  query game state and act on it. Built-in tools:
+#                    - get_bot_state    : bot's name, level, class, race, zone, area, hp%
+#                    - get_player_state : same for a named player (or the whisperer if name omitted)
+#                    - get_zone_info    : zone/area name, map id, position
+#                    - whisper_player   : send a whisper to another online player from the bot
+#                  When enabled, takes precedence over streaming (tool-call parsing on SSE
+#                  is not implemented).
+#     Default:     0 (false)
+OllamaChat.Gateway.EnableToolUse = 0
+
+# OllamaChat.Gateway.MaxToolIterations
+#     Description: Recursion guard for the tool-call loop. Each iteration can dispatch one
+#                  batch of tool_calls and re-query the gateway. The loop terminates either
+#                  when the model returns plain content or when this cap is reached.
+#     Default:     3
+OllamaChat.Gateway.MaxToolIterations = 3
+
+# OllamaChat.Gateway.AllowedTools
+#     Description: Comma-separated allowlist of tool names. Empty = all registered tools enabled.
+#                  Per-bot 'tools' in BotOverridesJson takes precedence over this global list.
+#
+#                  Entries may be either a plain tool name or an `@group` selector, and the
+#                  two can be mixed. Groups are derived from the tool name, so a newly added
+#                  tool joins its group automatically.
+#
+#                  WHY YOU WANT THIS: the full registry is ~58k tokens, and it is sent to the
+#                  model on EVERY gateway call, per bot, per turn. Leaving this empty means
+#                  every bot pays for all 204 tools including the ~9.9k of guild management and
+#                  ~11.4k of auction-house tooling it will never touch. Scoping a bot to what
+#                  it actually does is the single biggest token lever in the module.
+#
+#                  Groups (tools / approx tokens):
+#                    @core         9 / 1.0k   always-on situational awareness — keep in every profile
+#                    @social       7 / 0.9k   say/yell/emote/whisper, nearby players
+#                    @combat      24 / 6.4k   attack, cast, flee, rez, auras, cooldowns, threat
+#                    @movement    13 / 2.7k   move/follow/stay/taxi/hearthstone/gameobjects
+#                    @loot         8 / 3.0k   loot rolls, filters, openables
+#                    @gear         9 / 2.2k   equip, autogear, glyphs, talents, spec
+#                    @quests      11 / 2.6k   accept/turn-in/share/abandon, quest log
+#                    @raid        23 / 7.4k   group + raid + battleground + difficulty
+#                    @economy     26 / 11.4k  auction house, mail, bank, vendor, trade
+#                    @guild       27 / 9.9k   guild roster, ranks, bank, membership
+#                    @pets         9 / 2.0k   tame/stable/pet commands
+#                    @profession   8 / 2.1k   crafting, recipes, skills, trainers, gathering
+#                    @progression  5 / 2.3k   achievements, currencies, reputations, world events
+#                    @admin       25 / 3.9k   ops_*/leader_*/config_* — NOT normally for bots
+#                    @all        204 / 57.9k  everything (same as leaving this empty)
+#
+#                  Example profiles (measured):
+#                    combat grunt  "@core,@social,@combat,@movement,@loot,@gear"        ~16.3k tok (-72%)
+#                    questing bot  "...,@quests"                                        ~18.9k tok (-67%)
+#                    raider        "@core,@social,@combat,@movement,@loot,@gear,@raid"  ~23.7k tok (-59%)
+#
+#                  An unknown @group is logged as an error and skipped. If nothing in the list
+#                  resolves, the module falls back to all tools rather than leaving a bot with
+#                  none — check Server.log if a bot seems to have more tools than you expected.
+#
+#     Example:     "@core,@social,@combat,@movement"
+#     Default:     (empty — all tools enabled)
+OllamaChat.Gateway.AllowedTools = ""
+
+# OllamaChat.Gateway.ToolFacadeGroups
+#     Description: Which capability groups are advertised as ONE {action, params} tool
+#                  instead of N individually-schema'd tools.
+#
+#                  DEFAULT IS "*" - every group collapsed. The bot sees 14 tools, not 204.
+#
+#                  Why this is the default: 204 separate tool definitions cost ~57.9k tokens
+#                  on EVERY gateway call, per bot, per turn. Collapsed it is ~6.6k (-89%),
+#                  and a 14-entry tool list is something a model can actually reason over.
+#
+#                  Each facade inlines a compact signature per action, so the model still
+#                  knows how to call things without a lookup:
+#                      bot_cast(botGuid*,spell_id*); bot_flee(botGuid*); ...
+#                  A trailing * marks a required parameter. When the model also needs a
+#                  parameter's TYPE or prose description it calls {"describe":"<action>"},
+#                  which returns that action's full schema without executing it. That costs
+#                  one of OllamaChat.Gateway.MaxToolIterations, so it should be the
+#                  exception - the inline signatures exist to keep it that way.
+#
+#     Values:      "*"        all groups collapsed (default)
+#                  "none"     no collapsing - the old flat 204-tool list
+#                  "a,b,c"    collapse only these groups, leave the rest flat
+#
+#                  Group names: core, social, combat, movement, loot, gear, quests, raid,
+#                  economy, guild, pets, profession, progression, admin
+#
+#                  To collapse only the cold path, keeping combat reactions on full schemas:
+#                    "economy,guild,raid,quests,pets,profession,progression,admin"
+#                    -> ~18.4k tokens, hot path untouched
+#
+#                  Calls resolve to the real tool before the handler runs, so per-tool rate
+#                  limits and audit rows are unchanged, and an action cannot reach a tool
+#                  outside its own group.
+#
+#     Default:     "*"
+OllamaChat.Gateway.ToolFacadeGroups = "*"
+
+# --------------------------------------------
+# GATEWAY AUDIT + ACTIONS (PR7)
+# --------------------------------------------
+
+# OllamaChat.Gateway.EnableAudit
+#     Description: Persist every gateway request to mod_ollama_chat_gateway_audit (one row per call).
+#                  Used by '.ollama gateway costs' for retrospective reporting.
+#                  Source the schema first: data/sql/characters/base/2026_04_18_gateway_audit.sql
+#     Default:     0 (false)
+OllamaChat.Gateway.EnableAudit = 0
+
+# OllamaChat.Gateway.AuditRetentionDays
+#     Description: Drop audit rows older than this many days. Pruned on startup and on
+#                  '.ollama gateway prune'. Set to 0 to disable pruning.
+#     Default:     30
+OllamaChat.Gateway.AuditRetentionDays = 30
+
+# OllamaChat.Gateway.EnableActionMarkers
+#     Description: Parse [name:arg] markers in gateway responses (e.g., "[emote:bow]"). Markers are
+#                  stripped from the user-visible whisper and dispatched to a C++ handler.
+#                  The current handler is a STUB that only logs the action — emote/follow wiring
+#                  to mod-playerbots is a future iteration.
+#     Default:     0 (false)
+OllamaChat.Gateway.EnableActionMarkers = 0
+
+# --------------------------------------------
+# MCP SERVER (PR8a) — In-game tools exposed via Model Context Protocol
+# --------------------------------------------
+# When enabled, the worldserver runs a small embedded HTTP MCP server that
+# exposes the gateway tool registry over JSON-RPC 2.0. External agent gateways
+# (Synthiq, etc.) load it via their .mcp.json config and call the tools
+# natively — this is the working transport since both upstream gateways drop
+# request-body tools[] passed via /v1/chat/completions.
+
+# OllamaChat.Mcp.Enable
+#     Description: Master switch. When 1, spawns a background HTTP listener on
+#                  Mcp.BindAddress:Mcp.Port. Refuses to start if Mcp.BearerToken
+#                  is empty.
+#     Default:     0 (false)
+OllamaChat.Mcp.Enable = 0
+
+# OllamaChat.Mcp.BindAddress
+#     Description: HTTP bind address. Use 127.0.0.1 to restrict to localhost,
+#                  or 0.0.0.0 to expose on all interfaces (then publish a port
+#                  in your container/firewall config so the upstream gateway
+#                  can reach it).
+#     Default:     0.0.0.0
+OllamaChat.Mcp.BindAddress = "0.0.0.0"
+
+# OllamaChat.Mcp.Port
+#     Description: HTTP listen port.
+#     Default:     18790
+OllamaChat.Mcp.Port = 18790
+
+# OllamaChat.Mcp.BearerToken
+#     Description: Required bearer token. Every request must present
+#                  `Authorization: Bearer <token>`. Mcp.Enable=1 with an empty
+#                  token is rejected at startup. Generate with:
+#                      openssl rand -hex 32
+#     Default:     (empty)
+OllamaChat.Mcp.BearerToken = ""
+
+# OllamaChat.Mcp.InjectContextHint
+#     Description: When 1, prepend a one-line MCP-context hint to the gateway
+#                  system prompt with the active botGuid + playerGuid so the
+#                  agent knows which arguments to pass to MCP tool calls.
+#                  Only fires when Mcp.Enable=1.
+#     Default:     1 (true)
+OllamaChat.Mcp.InjectContextHint = 1
+
+# OllamaChat.Mcp.AllowActionTools
+#     Description: Reserved for PR8c. When 0 the MCP server only exposes
+#                  read-only tools. When 1 (and PR8c shipped) it also exposes
+#                  write-action tools (follow, emote, invite, use item, cast).
+#     Default:     0 (false)
+OllamaChat.Mcp.AllowActionTools = 0
+
+# OllamaChat.Mcp.ActionRateLimitPerBotPerMinute
+#     Description: Reserved for PR8c. Independent rate limit for action tools.
+#     Default:     6
+OllamaChat.Mcp.ActionRateLimitPerBotPerMinute = 6
+
+# OllamaChat.Mcp.AllowedToolsExtra
+#     Description: Reserved for PR8b/PR8c. csv allowlist of tool names to expose
+#                  via MCP. Empty = all registered tools.
+#     Default:     (empty)
+OllamaChat.Mcp.AllowedToolsExtra = ""
+
+# OllamaChat.Mcp.AllowGatewayInjection
+#     Description: Hard switch for the `talk_to_leader` MCP tool — the voice /
+#                  external chat-injection seam. When 1, an authenticated MCP
+#                  client may deliver a natural-language message to the leader
+#                  bot's gateway brain exactly as an in-game whisper would, run
+#                  the full gateway tool-loop (the brain drives the squad), and
+#                  receive the brain's in-character reply. This is the server side
+#                  of the hands-free voice-command path (see docs/voice-command.md).
+#                  Off by default: it lets a bearer-holding client make the leader
+#                  act + speak on a player's behalf. The `talk_to_leader` tool is
+#                  always registered but returns an error until this is 1.
+#     Default:     0 (false)
+OllamaChat.Mcp.AllowGatewayInjection = 0
+
+# --------------------------------------------
+# OPS-API PROXY (8 read-only MCP tools)
+# --------------------------------------------
+# Proxy tools that GET /v1/{status,logs,files,audit} on the `wow-ops-api` Go
+# sidecar (deployed alongside this stack at `host.docker.internal:18791`) and
+# return the JSON pass-through. Lets the agent inspect logs, files, and audit
+# rows without ssh. See `docs/ops-api.md` for the full surface and the runbook
+# entry on rotating the bearer token.
+
+# OllamaChat.Ops.Enable
+#     Description: Master switch for the 8 ops_* MCP tools. When 0, every call
+#                  returns {"error":"ops-api tools disabled (OllamaChat.Ops.Enable=0)"}.
+#     Default:     0
+OllamaChat.Ops.Enable = 0
+
+# OllamaChat.Ops.Url
+#     Description: Base URL of the wow-ops-api sidecar. The default uses the
+#                  same-host loopback alias (`extra_hosts: host.docker.internal:host-gateway`
+#                  must be present on ac-worldserver in compose). Override to the
+#                  LAN bind (`http://192.168.100.11:18791`) or public DNS
+#                  (`https://ops.wow.example.com`) if needed.
+#     Default:     "http://host.docker.internal:18791"
+OllamaChat.Ops.Url = "http://host.docker.internal:18791"
+
+# OllamaChat.Ops.BearerToken
+#     Description: Required bearer token. MUST equal `OPS_BEARER_TOKEN` in
+#                  `<your secrets .env>` on game-host. Rotate together — there is
+#                  no per-consumer scoping.
+#     Default:     ""
+OllamaChat.Ops.BearerToken = ""
+
+# OllamaChat.Ops.TimeoutSeconds
+#     Description: Per-call HTTP timeout for ops_* tool dispatch. Each tool blocks
+#                  the worldserver thread for at most this long if the sidecar
+#                  is unreachable. Bursty tool storms × this timeout dominate
+#                  worst-case latency, so keep it short.
+#     Default:     10
+OllamaChat.Ops.TimeoutSeconds = 10
+
+# --------------------------------------------
+# MCP — LEADER BOT (Tier 9 + Tier 10)
+# --------------------------------------------
+# Promote one or more gateway agent bots to "leader" status. A leader can issue
+# playerbot commands at OTHER bots in real time via the MCP `leader_*` tool family,
+# turning the bot into an in-game raid/party leader. With AutoTickEnable=1 the
+# leader also runs a background tick that periodically reassesses the situation
+# (combat / target / hp / group / nearby threats) and proactively issues orders
+# without needing to be whispered.
+
+# OllamaChat.Mcp.Leader.Enable
+#     Description: Master switch for the leader_* MCP tools. When 0 the tools
+#                  are still registered (so tools/list shows them) but every call
+#                  returns {"error":"leader mode disabled"}.
+#     Default:     0
+OllamaChat.Mcp.Leader.Enable = 0
+
+# OllamaChat.Mcp.Leader.BotGUIDs
+#     Description: Comma-separated list of bot character GUIDs authorized to use
+#                  leader_* tools. Bots not in this list get an "unauthorized" error.
+#     Default:     (empty)
+#     Example:     "20007"   — make Claude the squad leader
+OllamaChat.Mcp.Leader.BotGUIDs = ""
+
+# OllamaChat.Mcp.Leader.Scope
+#     Description: Which players/bots the leader can command. Options:
+#                    "group"  — only bots in the leader's current party/raid
+#                    "nearby" — bots within Mcp.Leader.NearbyRadius yards
+#                    "owner"  — bots that share the leader's WoW account id
+#                    "all"    — every player in the world (DEBUG ONLY — wide blast radius)
+#     Default:     "group"
+OllamaChat.Mcp.Leader.Scope = "group"
+
+# OllamaChat.Mcp.Leader.NearbyRadius
+#     Description: Search radius in yards when Scope=nearby. Ignored otherwise.
+#     Default:     60.0
+OllamaChat.Mcp.Leader.NearbyRadius = 60.0
+
+# OllamaChat.Mcp.Leader.DeniedCommands
+#     Description: Comma-separated denylist of command-verb prefixes (case-insensitive,
+#                  first-token match). Any leader_command / leader_command_all whose
+#                  command starts with one of these is rejected at the server.
+#     Default:     "logout,quit,delete,reset,suicide"
+OllamaChat.Mcp.Leader.DeniedCommands = "logout,quit,delete,reset,suicide"
+
+# OllamaChat.Mcp.Leader.RateLimitPerMinute
+#     Description: Per-leader call cap on leader_command / leader_command_all in the
+#                  trailing 60s window. Higher than Mcp.ActionRateLimitPerBotPerMinute
+#                  because squad coordination needs bandwidth. 0 = unlimited.
+#     Default:     30
+OllamaChat.Mcp.Leader.RateLimitPerMinute = 30
+
+# OllamaChat.Mcp.Leader.InjectPromptHint
+#     Description: When the active bot is a leader, append a [LEADER MODE] block to
+#                  the gateway system prompt. Natural-language playbook text is
+#                  loaded from Mcp.Leader.SystemPromptFile; C++ only injects
+#                  runtime identity/tool context.
+#                  Set to 0 if you provide your own custom system prompt for the agent.
+#     Default:     1
+OllamaChat.Mcp.Leader.InjectPromptHint = 1
+
+# OllamaChat.Mcp.Leader.SystemPromptFile
+#     Description: External prompt/playbook file for gateway leader mode. This is
+#                  where natural-language examples and command grammar guidance
+#                  live; editing it does not require rebuilding the module.
+#                  Run .ollama reload after changing it.
+#     Default:     modules/mod-ollama-chat/prompts/gateway_leader.md
+OllamaChat.Mcp.Leader.SystemPromptFile = "modules/mod-ollama-chat/prompts/gateway_leader.md"
+
+# OllamaChat.Mcp.Leader.AutoTickEnable
+#     Description: Tier 10 — spawn a background thread that periodically samples each
+#                  leader's situation and fires a synthetic gateway request when state
+#                  has materially changed (combat in/out, target change, hp bucket,
+#                  group composition, nearby hostile count, zone). Lets the leader
+#                  proactively coordinate without needing to be whispered.
+#                  Requires Mcp.Enable=1 AND Mcp.Leader.Enable=1.
+#     Default:     0
+OllamaChat.Mcp.Leader.AutoTickEnable = 0
+
+# OllamaChat.Mcp.Leader.AutoTickIntervalSeconds
+#     Description: Sampling period for the autonomous tick. Minimum effective value
+#                  is 5s (lower values are clamped). Lower = more responsive but
+#                  more potential token spend (gated by AutoTickMaxPerHour).
+#     Default:     15
+OllamaChat.Mcp.Leader.AutoTickIntervalSeconds = 15
+
+# OllamaChat.Mcp.Leader.AutoTickMaxPerHour
+#     Description: Hard cap on autonomous gateway calls per leader per rolling hour.
+#                  Once exceeded, ticks silently skip until the window resets.
+#                  0 = unlimited (NOT RECOMMENDED — risk of runaway token spend).
+#     Default:     20
+OllamaChat.Mcp.Leader.AutoTickMaxPerHour = 20
+
+# OllamaChat.Mcp.Leader.AllowAdminCommands
+#     Description: Tier 9.1 — enables the leader_admin_command MCP tool, which lets the
+#                  leader bot run `.playerbots bot <verb>` admin commands via its session.
+#                  Manages bot population (add/despawn/list) — does NOT delete characters
+#                  from the DB (despawning a bot only logs them out; the character row is
+#                  preserved and `bot add` re-spawns them). SEC_GAMEMASTER subcommands like
+#                  initself/reload/tweak are still rejected by playerbots' own check because
+#                  bots run as SEC_PLAYER.
+#     Default:     0
+OllamaChat.Mcp.Leader.AllowAdminCommands = 0
+
+# OllamaChat.Mcp.Leader.AllowedAdminCommands
+#     Description: Comma-separated allowlist of `bot` subcommand verbs (case-insensitive,
+#                  first-token match). Anything outside this list is rejected at the server
+#                  with a clear error before reaching playerbots.
+#     Default:     "add,addclass,addaccount,remove,list"
+OllamaChat.Mcp.Leader.AllowedAdminCommands = "add,addclass,addaccount,remove,list"
+
+#
+# OllamaChat.Mcp.Gm.AllowedCommands
+#     Description: Whole-word prefix allowlist for the admin_gm_command MCP tool, which runs one
+#                  worldserver console (GM) command, e.g. "lookup item hearthstone" or
+#                  "tele name Slayo Undercity" ("tele name" does NOT admit "tele del"). The in-game
+#                  model sees every MCP tool, so keep destructive commands OUT. Console-incapable
+#                  commands (group join, gps) are the admin_group_join / admin_player_gps tools.
+#     Default:     "lookup,pinfo,tele name,server info"
+
+OllamaChat.Mcp.Gm.AllowedCommands = "lookup,pinfo,tele name,server info"
+
+# OllamaChat.Mcp.Leader.SystemMasterGuid
+#     Description: Fallback master guid for leader_admin_command. When the leader's own
+#                  GetMaster() is null (typical for rndbots auto-spawned by Overlord), the
+#                  tool dispatches `.playerbots bot ...` through THIS character's session
+#                  instead. Must point at a character that's registered as a master
+#                  (PlayerbotMgr). Normally identical to OllamaChat.Overlord.CharacterGuid.
+#                  Setting this to 0 disables the fallback (admin commands then fail for
+#                  bots without a human master, preserving pre-feature behavior).
+#     Default:     0
+OllamaChat.Mcp.Leader.SystemMasterGuid = 0
+
+# --------------------------------------------
+# MCP CONFIG-EDIT TOOLS
+# --------------------------------------------
+# Lets an MCP-connected agent read and edit AzerothCore .conf files in place via
+# five new tools: config_list_files, config_get_file, config_get_value,
+# config_set_value, config_reload. All edits are atomic (write-tmp + rename),
+# backed up to BackupDir before every write, and audited to
+# mod_ollama_chat_gateway_audit (channel 'mcp:config_edit' / 'mcp:config_reload').
+#
+# Security model — three stacked gates, ALL must pass:
+#   1. Mcp.ConfigEdit.Enable = 1                (this whole family)
+#   2. Mcp.AllowActionTools  = 1                (writes only; reads require #1 only)
+#   3. Per-file key allowlist match             (AllowedKeys)
+#   PLUS a deny-pattern sweep that always wins (*Token*, *Password*, etc.).
+#
+# Rollout guidance: start with Mcp.ConfigEdit.Enable=0. When flipping to 1, keep
+# AllowedFiles and AllowedKeys tight — 1 file, ~5 keys — and expand once the
+# audit table shows a clean run. Do NOT allowlist ports, database credentials,
+# or anything whose regression is not immediately obvious in-game.
+#
+# Reloads: config_reload re-reads every .conf via sConfigMgr->Reload() for the
+# 'mod_ollama_chat' target, and dispatches '.playerbots bot reload' /
+# '.reload config' through ReloadAdminSessionGuid's session for the other two.
+# Set ReloadAdminSessionGuid to Overlord.CharacterGuid so reloads work without a
+# logged-in human. Note: '.reload config' is SEC_ADMINISTRATOR — Overlord's
+# character must be on an account with gmlevel >= 3 for worldserver reload.
+
+# OllamaChat.Mcp.ConfigEdit.Enable
+#     Description: Master switch for the whole config_* tool family. With 0 the
+#                  tools return an error immediately and do no file I/O.
+#     Default:     0
+OllamaChat.Mcp.ConfigEdit.Enable = 0
+
+# OllamaChat.Mcp.ConfigEdit.ConfigRoot
+#     Description: Canonical directory containing the .conf files. Each entry
+#                  in AllowedFiles is resolved as "<ConfigRoot>/<basename>".
+#                  Inside the ac-worldserver container this is usually
+#                  "/azerothcore/env/dist/etc".
+#     Default:     ""
+OllamaChat.Mcp.ConfigEdit.ConfigRoot = ""
+
+# OllamaChat.Mcp.ConfigEdit.AllowedFiles
+#     Description: CSV of basenames (relative to ConfigRoot) the agent can
+#                  read via config_get_* and edit via config_set_value. Path
+#                  separators and '..' are rejected; only bare basenames.
+#                  Typical: "mod_ollama_chat.conf"
+#     Default:     ""
+OllamaChat.Mcp.ConfigEdit.AllowedFiles = ""
+
+# OllamaChat.Mcp.ConfigEdit.AllowedKeys
+#     Description: CSV of "basename:KEY_OR_GLOB" pairs. Editing a key requires
+#                  a glob match here AND the basename in AllowedFiles. '*'
+#                  matches zero-or-more chars, '?' matches one char.
+#                  Example:
+#                    "mod_ollama_chat.conf:OllamaChat.Gateway.AutoClaimOnLogin,\
+#                     mod_ollama_chat.conf:OllamaChat.Gateway.MentionExempt*,\
+#                     mod_ollama_chat.conf:OllamaChat.Mcp.Leader.AutoTick*"
+#     Default:     ""
+OllamaChat.Mcp.ConfigEdit.AllowedKeys = ""
+
+# OllamaChat.Mcp.ConfigEdit.DeniedKeys
+#     Description: CSV of globs that are NEVER readable or writable via the
+#                  config_* tools, regardless of AllowedKeys. Defense against
+#                  an over-broad AllowedKeys accidentally exposing credentials.
+#                  The default covers API tokens, password fields, and AC's
+#                  database-connection strings.
+#     Default:     "*Token*,*Password*,*Secret*,*BearerToken*,*ApiKey*,*DatabaseInfo*"
+OllamaChat.Mcp.ConfigEdit.DeniedKeys = "*Token*,*Password*,*Secret*,*BearerToken*,*ApiKey*,*DatabaseInfo*"
+
+# OllamaChat.Mcp.ConfigEdit.BackupDir
+#     Description: Directory where config_set_value drops a copy of each file
+#                  before editing, named "<basename>.<unix-ts>.bak". Ownership
+#                  of the backup inherits from the writing process (root in the
+#                  default container). If BackupDir is empty or not writable,
+#                  writes fail closed.
+#                  Typical: "/azerothcore/env/dist/etc/backups"
+#     Default:     ""
+OllamaChat.Mcp.ConfigEdit.BackupDir = ""
+
+# OllamaChat.Mcp.ConfigEdit.MaxFileSizeBytes
+#     Description: Hard cap on how much config_get_file will return in one
+#                  call. Also used as a sanity check on writes — oversized
+#                  files indicate misconfiguration.
+#     Default:     1048576 (1 MiB)
+OllamaChat.Mcp.ConfigEdit.MaxFileSizeBytes = 1048576
+
+# OllamaChat.Mcp.ConfigEdit.ReloadAdminSessionGuid
+#     Description: Low part of the character GUID whose WorldSession is used
+#                  to dispatch '.playerbots bot reload' and '.reload config'
+#                  when config_reload targets 'playerbots' or 'worldserver'.
+#                  Must be an in-world character registered as a master
+#                  (PlayerbotMgr) with gmlevel >= 3 for worldserver reloads.
+#                  Typically identical to OllamaChat.Overlord.CharacterGuid.
+#                  Setting this to 0 disables the dispatch path: targets other
+#                  than 'mod_ollama_chat' return an error.
+#     Default:     0
+OllamaChat.Mcp.ConfigEdit.ReloadAdminSessionGuid = 0
+
+# --------------------------------------------
+# PHASE 1 — OVERLORD (headless master auto-login)
+# --------------------------------------------
+# Autonomous-bot deployments that start the worldserver on demand (e.g. once
+# per day) need a persistent non-bot master session so the agent can run
+# `.playerbots bot add/remove/list` via leader_admin_command. A human keeper
+# character works but is fragile — Overlord replaces them with a dedicated
+# character that the server loads headlessly on startup.
+#
+# How it works:
+#   - A background thread waits StartupDelaySeconds after world init, then
+#     builds a null-socket WorldSession (same path mod-playerbots uses for its
+#     own bots) and loads the Overlord character into the world.
+#   - The resulting Player is registered as a MASTER (PlayerbotMgr), NOT as
+#     bot AI. PlayerbotsMgr::GetPlayerbotMgr(overlord) returns a real manager,
+#     which is what `.playerbots bot` requires to dispatch.
+#   - WorldSession::IsBot() reports true so AC skips socket I/O, DoS checks,
+#     and Warden — exactly what mod-playerbots relies on for its own bots.
+#
+# Prep work (one-time):
+#   1. Create a normal character through any real client (e.g. "Overlord" on
+#      account BOTMASTER). Log it out where you want it to idle (somewhere
+#      safe — a starter zone is fine).
+#   2. Look up the character's low guid:
+#         SELECT guid, name, account FROM characters WHERE name='Overlord';
+#   3. Set CharacterGuid below to that low guid.
+#   4. Set Enable to 1 and reload.
+#
+# Leader pairing: set OllamaChat.Mcp.Leader.BotGUIDs to include the bot you
+# want promoted (e.g. "20007"), and make sure the leader is a party member of
+# Overlord at runtime — leader_admin_command dispatches via the leader's
+# master's session (Tier 9.1), and Overlord becomes that master.
+#
+# OllamaChat.Overlord.Enable
+#     Description: Master switch for the auto-login. With Enable=0 nothing
+#                  happens at startup. With Enable=1 and CharacterGuid=0 the
+#                  module logs a configuration error but does NOT crash.
+#     Default:     0
+OllamaChat.Overlord.Enable = 0
+
+# OllamaChat.Overlord.CharacterGuid
+#     Description: Low part of the character guid to log in as Overlord.
+#                  Must belong to an EXISTING character (create one once via a
+#                  real client or via .playerbots bot add). Account can be any
+#                  account — doesn't have to be the agent's.
+#     Default:     0
+OllamaChat.Overlord.CharacterGuid = 0
+
+# OllamaChat.Overlord.StartupDelaySeconds
+#     Description: How long to wait after OnStartup before triggering the
+#                  login. Needs to be long enough for maps / cached DB state
+#                  to be ready. 30s is conservative.
+#     Default:     30
+OllamaChat.Overlord.StartupDelaySeconds = 30
+
+# OllamaChat.Overlord.AutoSpawnBots
+#     Description: Comma-separated list of character GUIDs (low parts) that
+#                  Overlord will auto-spawn as rndbots right after registering
+#                  as master. Use for gateway leader bots (Claude/Clawd/Geek
+#                  etc.) so the full fleet is online on every server boot with
+#                  zero human involvement. masterAccountId=0 is used so the
+#                  same-account/guild/linked permission checks DO NOT apply —
+#                  Overlord can bring up bots on any account. Bots register as
+#                  PlayerbotAI (rndbot); leader_admin_command's
+#                  Mcp.Leader.SystemMasterGuid fallback routes admin calls back
+#                  through Overlord so the rndbot-flavored fleet is still
+#                  agent-drivable.
+#                  Example: "20007,20008,20009"
+#     Default:     ""
+OllamaChat.Overlord.AutoSpawnBots = ""
+
+# --------------------------------------------
+# FLEET BOOTSTRAP — party/master reconciliation (robot-first mode)
+# --------------------------------------------
+# Overlord spawns the fleet but never groups it, and mod-playerbots clears
+# PlayerbotAI::master every tick for an UNGROUPED random bot — leaving the
+# fleet permanently ownerless: bot_summon / bare bot_follow resolve their
+# destination from the registered master and silently no-op without one.
+#
+# With EnsureParty=1 a periodic world-thread pass (re-entrant, idempotent):
+#   1. self-masters the LEADER bot (makes it a valid playerbot master —
+#      IsRealPlayer() == true — and shields it from random-bot sweeps),
+#   2. forms a party under the leader if none exists,
+#   3. pulls each member bot in and sets the leader as its master.
+# If the group ever breaks, the next pass re-forms it. Bots found in a
+# DIFFERENT group (operator's party, battleground) are never yanked out.
+# Overlord/Botmaster deliberately stays OUT of this party — it remains only
+# the `.playerbots bot` admin session, keeping the 5th slot free for a human.
+
+# OllamaChat.Fleet.EnsureParty
+#     Description: Master switch for the reconciliation pass.
+#     Default:     0
+OllamaChat.Fleet.EnsureParty = 0
+
+# OllamaChat.Fleet.LeaderGuid
+#     Description: Character guid (low part) of the leader bot that becomes the
+#                  self-mastered party leader. Typically the Mcp.Leader bot
+#                  (e.g. 20007).
+#     Default:     0
+OllamaChat.Fleet.LeaderGuid = 0
+
+# OllamaChat.Fleet.MemberGuids
+#     Description: Comma-separated character guids (low parts) of the member
+#                  bots to pull into the leader's party with the leader as
+#                  their playerbot master. Example: "20008,20009"
+#     Default:     ""
+OllamaChat.Fleet.MemberGuids = ""
+
+# OllamaChat.Fleet.EnsureIntervalSec
+#     Description: Seconds between reconciliation passes (floor 5).
+#     Default:     20
+OllamaChat.Fleet.EnsureIntervalSec = 20
+
+###############################################################################
+# Tactical (companion-mode) agent layer
+#
+# A hierarchical / cascading LLM agent. A local Ollama model drives a low-
+# frequency tactical heartbeat (event-triggered + slow fallback) for each
+# tactical-enabled bot, ONLY while a whitelisted human is online and nearby.
+# The paid gateway (Claude/Synthiq/OpenClaw) is NEVER on a timer — it is invoked
+# only when tactical emits an `escalate` field, or when a human chats (existing
+# gateway path). See docs/tactical.md (phase 6) for the full runbook.
+#
+# Combat separation: playerbots engine owns in-combat tactics. Tactical chooses
+# strategy + social actions (narrate plans, ask the human, request HITL, set
+# focus mark, pre-pull buffs, change engine strategy). The dispatcher blocks
+# combat-override actions (bot_attack_target, per-tick casts, etc.) while the
+# bot is InCombat() unless AllowCombatOverride=1.
+#
+# Presence gate: when the last whitelisted human (from
+# OllamaChat.Gateway.AutoClaimAccountIds) logs out, every tactical bot goes
+# dormant. Zero ticks, zero Ollama calls, zero tokens until you log back in.
+# The old random/event local-Ollama responders have been removed. Tactical
+# Ambient Mode now owns proactive speech/emotes and consumes recent gameplay
+# event context from the event hooks.
+###############################################################################
+
+# OllamaChat.Tactical.Enable
+#     Description: Global kill switch for the whole tactical + strategic-
+#                  escalation stack. With Enable=0 the threads never start and
+#                  every code path is a no-op — the module behaves exactly as
+#                  before this feature landed. Enable=1 starts the tactical
+#                  heartbeat + strategic escalation worker; both still no-op
+#                  for a bot unless that bot's GUID is listed in BotGUIDs.
+#     Default:     1
+OllamaChat.Tactical.Enable = 1
+
+# OllamaChat.Tactical.BotGUIDs
+#     Description: Comma-separated list of bot character GUIDs (low parts) that
+#                  are eligible for companion-mode. Bots NOT in this list are
+#                  still eligible for runtime auto-enroll when
+#                  Tactical.AutoEnrollNearbyBots=1 and they are near a
+#                  whitelisted/real human. Empty no longer means "nobody" when
+#                  auto-enroll is enabled.
+#                  Example: "20007,20008,20009"
+#     Default:     ""
+OllamaChat.Tactical.BotGUIDs = ""
+
+# OllamaChat.Tactical.Url
+#     Description: Endpoint for tactical background reasoning. The WIRE FORMAT
+#                  IS CHOSEN FROM THE URL (see OllamaChat.OpenAiCompat.ApiKey):
+#                    .../api/generate      -> Ollama. Host it on your Mac or on
+#                                             a PC with a capable GPU over LAN /
+#                                             Tailscale; the default uses Docker's
+#                                             host.docker.internal.
+#                    .../chat/completions  -> any OpenAI-compatible provider
+#                                             (DeepSeek, OpenAI, LiteLLM, the
+#                                             Synthiq gateway). Set Model to that
+#                                             provider's model id and put the
+#                                             bearer in OpenAiCompat.ApiKey.
+#                  Switching backends is this line + Model + config_reload; no
+#                  rebuild. Per-bot Tactical.BotOverridesJsonFile entries can
+#                  mix formats freely (one bot on Ollama, one on DeepSeek).
+#                  Example — all tactical reasoning on DeepSeek:
+#                    OllamaChat.Tactical.Url   = "https://api.deepseek.com/v1/chat/completions"
+#                    OllamaChat.Tactical.Model = "deepseek-flash"
+#     Default:     "http://host.docker.internal:11434/api/generate"
+OllamaChat.Tactical.Url = "http://host.docker.internal:11434/api/generate"
+
+# OllamaChat.Tactical.Model
+#     Description: Ollama model name used for tactical background reasoning.
+#                  Use a model that fully fits your GPU for steady ticks.
+#                  On a 16GB RTX 5080, qwen3:14b is the recommended balance.
+#     Default:     "qwen3:14b"
+OllamaChat.Tactical.Model = "qwen3:14b"
+
+# OllamaChat.Tactical.HumanPresenceRequired
+#     Description: When 1, tactical only acts for a bot if at least one
+#                  whitelisted human (see OllamaChat.Gateway.AutoClaimAccountIds)
+#                  is online and in-world. When the last such human logs out,
+#                  all tactical bots go dormant until someone logs back in.
+#                  Set to 0 only if you actually want bots playing while you're
+#                  offline (not recommended — defeats the "companion" premise
+#                  and may burn Ollama GPU time for nothing).
+#     Default:     1
+OllamaChat.Tactical.HumanPresenceRequired = 1
+
+# OllamaChat.Tactical.HeartbeatMs
+#     Description: Fallback tick interval for the tactical thread, in
+#                  milliseconds. Most tactical wakes are driven by gameplay
+#                  events (human chat, combat entry/exit, zone change); the
+#                  heartbeat exists to catch idle-detection and the "want to
+#                  say something?" checks. 10s is usually enough.
+#     Default:     10000
+OllamaChat.Tactical.HeartbeatMs = 10000
+
+# OllamaChat.Tactical.BotCooldownMs
+#     Description: Minimum gap between tactical decisions for the same bot, in
+#                  milliseconds. Prevents a chatty model from spamming actions.
+#     Default:     2000
+OllamaChat.Tactical.BotCooldownMs = 2000
+
+# OllamaChat.Tactical.SnapshotCacheMs
+#     Description: TTL for the per-bot compact snapshot used to build the
+#                  tactical prompt, in milliseconds. Shorter = fresher state
+#                  but more CPU on snapshot rebuilds; longer = staler context
+#                  but cheaper.
+#     Default:     500
+OllamaChat.Tactical.SnapshotCacheMs = 500
+
+# OllamaChat.Tactical.MaxConcurrentQueries
+#     Description: Default hard cap on in-flight Ollama calls per resolved
+#                  tactical endpoint URL. Queue overflow waits for a slot.
+#                  Per-bot overrides can set maxConcurrentQueries for their
+#                  endpoint. 0 = unlimited.
+#     Default:     1
+OllamaChat.Tactical.MaxConcurrentQueries = 1
+
+# OllamaChat.Tactical.MaxPerBotPerHour
+#     Description: Hourly budget of Ollama calls per bot. This is the FREE side
+#                  — you can keep it generous; the real cost is the paid
+#                  Strategic path. 0 = uncapped.
+#     Default:     600
+OllamaChat.Tactical.MaxPerBotPerHour = 600
+
+# OllamaChat.Tactical.RequestTimeoutMs
+#     Description: HTTP timeout for each tactical Ollama call, in milliseconds.
+#                  Beyond this, the call is abandoned and the bot waits for the
+#                  next tick.
+#     Default:     5000
+OllamaChat.Tactical.RequestTimeoutMs = 5000
+
+# OllamaChat.Tactical.NumCtx
+#     Description: Ollama context window (num_ctx) for tactical calls. Shrinks
+#                  the KV cache to claw back VRAM on borderline-fit models
+#                  (e.g. 27-30B at Q4 on a 16GB GPU). Tactical snapshots are
+#                  ~1-2KB so 2048 is typically plenty. Set to 0 to let Ollama
+#                  use the model default (4K-8K depending on the model).
+#     Default:     2048
+#     Example:     OllamaChat.Tactical.NumCtx = 2048
+OllamaChat.Tactical.NumCtx = 2048
+
+# OllamaChat.Tactical.BotOverridesJson
+#     Description: Optional JSON array of per-bot tactical Ollama overrides.
+#                  Use this to split tactical bots across multiple Ollama hosts
+#                  (for example one bot on a PC GPU and one bot on a MacBook).
+#                  `guid` is required. `url`, `model`, `numCtx`, `timeoutMs`,
+#                  and `maxConcurrentQueries` are optional and inherit the
+#                  global Tactical.* values when omitted. Each override guid is
+#                  automatically added to Tactical.BotGUIDs at runtime.
+#     Default:     ""
+#     Example:     OllamaChat.Tactical.BotOverridesJson = "[{\"guid\":20007,\"url\":\"http://192.168.100.15:11434/api/generate\",\"model\":\"qwen3:14b\",\"numCtx\":2048,\"timeoutMs\":5000,\"maxConcurrentQueries\":1},{\"guid\":20008,\"url\":\"http://192.168.100.16:11434/api/generate\",\"model\":\"qwen3:14b\",\"numCtx\":2048,\"timeoutMs\":8000,\"maxConcurrentQueries\":1}]"
+OllamaChat.Tactical.BotOverridesJson = ""
+
+# OllamaChat.Tactical.BotOverridesJsonFile
+#     Description: Optional path to a JSON array of per-bot tactical Ollama
+#                  overrides. Preferred over inline BotOverridesJson because
+#                  AzerothCore config parsing strips embedded quote characters
+#                  from inline JSON values. Takes precedence over
+#                  Tactical.BotOverridesJson when set.
+#     Default:     ""
+#     Example:     OllamaChat.Tactical.BotOverridesJsonFile = "/azerothcore/env/dist/etc/modules/tactical_overrides.json"
+#                  Entry fields: guid (required), url, model, numCtx, timeoutMs,
+#                  maxConcurrentQueries, jev (true|false — jev tier canary, see Jev.Tactical.*).
+OllamaChat.Tactical.BotOverridesJsonFile = ""
+
+# OllamaChat.Tactical.SystemPromptFile
+#     Description: External prompt/playbook file for the local tactical Ollama
+#                  layer. Natural-language examples, autonomy policy, and tool
+#                  selection guidance live here instead of hardcoded C++.
+#                  C++ still injects runtime facts, allowed tool names, and
+#                  structural safety gates. Run .ollama reload after editing it.
+#     Default:     modules/mod-ollama-chat/prompts/ollama_tactical.md
+OllamaChat.Tactical.SystemPromptFile = "modules/mod-ollama-chat/prompts/ollama_tactical.md"
+
+# OllamaChat.Gateway.OllamaClassifier.Enable
+#     Description: Cheap-path intent classifier. Sends short party-chat /
+#                  whisper commands through a fast local Ollama classifier
+#                  instead of hardcoded C++ phrase matching or the paid Synthiq
+#                  upstream. On confident classification (see MinConfidence),
+#                  the selected allowlisted tool is dispatched in-process and a
+#                  one-line ack is returned. Nuanced / multi-step /
+#                  conversational messages fall through to Synthiq unchanged.
+#                  This flag gates ONLY the LLM classifier tier; the jev tier
+#                  (OllamaChat.Jev.Classifier.Enable) is independent. With this
+#                  off and jev on, a jev miss goes straight to the gateway.
+#     Default:     1 (enabled)
+OllamaChat.Gateway.OllamaClassifier.Enable = 1
+
+# OllamaChat.Gateway.Classifier.MaxWords
+#     Description: Word gate shared by BOTH classifier tiers. A chat line with
+#                  more whitespace-separated words than this skips the
+#                  interceptors entirely and goes to the in-character gateway
+#                  (tools included). 3 keeps "attack" / "follow me" / "everyone
+#                  hearth" on the ~1 s fast path and sends "share your quest
+#                  with the party" to the bot's brain. 0 = no gate.
+#     Default:     0
+OllamaChat.Gateway.Classifier.MaxWords = 0
+
+# OllamaChat.Gateway.OllamaClassifier.Url
+#     Description: Endpoint for the cheap intent classifier. Same URL-driven
+#                  format rule as OllamaChat.Tactical.Url: .../api/generate is
+#                  Ollama, .../chat/completions is any OpenAI-compatible provider
+#                  (bearer from OllamaChat.OpenAiCompat.ApiKey). The proactive
+#                  intent and tick-gate calls reuse this endpoint too.
+#                  Empty string means inherit OllamaChat.Tactical.Url.
+#     Default:     "" (inherit Tactical.Url)
+OllamaChat.Gateway.OllamaClassifier.Url = ""
+
+# OllamaChat.Gateway.OllamaClassifier.Model
+#     Description: Fast Ollama model for JSON intent routing. Keep this small
+#                  and fully GPU-resident; tactical can use a larger model.
+#     Default:     "qwen3:8b"
+OllamaChat.Gateway.OllamaClassifier.Model = "qwen3:8b"
+
+# OllamaChat.Gateway.OllamaClassifier.TimeoutMs
+#     Description: HTTP timeout for classifier calls. On timeout, the
+#                  message falls through to the paid gateway path. Set 0 to
+#                  use the legacy 5-second classifier timeout. A remote
+#                  provider (DeepSeek) answers in ~1-2 s; a cold local Ollama
+#                  model can take longer than this on first load.
+#     Default:     5000
+OllamaChat.Gateway.OllamaClassifier.TimeoutMs = 5000
+
+# OllamaChat.OpenAiCompat.ApiKey
+#     Description: Bearer token sent to any FAST-PATH endpoint whose URL is an
+#                  OpenAI-compatible .../chat/completions (Tactical.Url,
+#                  Gateway.OllamaClassifier.Url, and per-bot tactical
+#                  overrides). Ollama-format URLs never see it. One shared key:
+#                  all fast ops are expected to sit on one provider. Read on
+#                  startup and on config_reload, so changing it needs no
+#                  restart. This is a secret — keep it in the live conf on
+#                  the server, never in a committed file. ops-api's
+#                  file_set_key refuses keys matching *Key* by policy, so edit
+#                  it over ssh.
+#                  What the OpenAI path sends: model, messages[system,user],
+#                  stream=false, response_format={type:json_object}, and on a
+#                  *.deepseek.com host thinking={type:disabled} (deepseek-flash
+#                  reasons by default: 6 s / 828 hidden tokens per call without
+#                  it, 1.7 s / 0 with it). Dropped (Ollama-only): keep_alive,
+#                  options.num_ctx.
+#                  JSON mode on these providers REQUIRES the word "json" in
+#                  the prompt — every shipped fast-path prompt already has it.
+#                  Diagnose a rejected key in the worldserver log: the
+#                  provider's own message ("Authentication Fails ...") is
+#                  surfaced verbatim by the tactical/classifier failure lines.
+#     Default:     ""
+OllamaChat.OpenAiCompat.ApiKey = ""
+
+# OllamaChat.Gateway.OllamaClassifier.NumCtx
+#     Description: Ollama context window (num_ctx) for classifier calls. 2048
+#                  leaves room for the prompt plus appended runtime context.
+#                  Set 0 to let Ollama use the model default.
+#     Default:     2048
+OllamaChat.Gateway.OllamaClassifier.NumCtx = 2048
+
+# OllamaChat.Gateway.OllamaClassifier.SystemPromptFile
+#     Description: External prompt/playbook file for the local classifier.
+#                  Natural-language examples and phrase semantics live here,
+#                  not in C++. C++ only injects runtime facts, allowed tool
+#                  names, JSON contract, and structural safety gates.
+#                  Run .ollama reload after changing it.
+#     Default:     modules/mod-ollama-chat/prompts/ollama_classifier.md
+OllamaChat.Gateway.OllamaClassifier.SystemPromptFile = "modules/mod-ollama-chat/prompts/ollama_classifier.md"
+
+# OllamaChat.Gateway.OllamaClassifier.MinConfidence
+#     Description: Required classifier confidence (0.0-1.0) to short-circuit
+#                  the paid gateway call. Lower values route more traffic
+#                  through the cheap path (more savings, more misclassification
+#                  risk); higher values are more conservative. 0.8 is the
+#                  recommended default — local Ollama handles clear commands
+#                  while ambiguous phrasing falls through to Synthiq.
+#     Default:     0.8
+OllamaChat.Gateway.OllamaClassifier.MinConfidence = 0.8
+
+# OllamaChat.Tactical.MinWhisperGapSec
+#     Description: Minimum seconds between consecutive `whisper_player` calls
+#                  per tactical bot. Without this, idle tactical ticks tend to
+#                  latch onto whisper_player as a safe default every heartbeat,
+#                  spamming the human's chat and feeding reactive playerbots
+#                  chatter ("Asked X for Combat-Strategies" → `co ?` loops).
+#                  When blocked, the tactical dispatcher returns an error that
+#                  instructs the model to pick a quieter action (get_bot_state,
+#                  bot_emote, bot_follow) on the next tick.
+#                  Set to 0 to disable the gate (not recommended).
+#     Default:     120
+OllamaChat.Tactical.MinWhisperGapSec = 120
+
+# OllamaChat.Tactical.AmbientEnable
+#     Description: Enables Tactical Ambient Mode: the tactical loop may choose
+#                  tactical_idle, contextual bot_emote, and short bot_say lines
+#                  from local Ollama. Disable this if you want tactical tools
+#                  without visible "alive" behavior.
+#     Default:     1
+OllamaChat.Tactical.AmbientEnable = 1
+
+# OllamaChat.Tactical.AmbientMinSpeechGapSec
+#     Description: Minimum seconds between visible speech actions
+#                  (bot_say/bot_yell/ambient whisper accounting) per bot.
+#     Default:     60
+OllamaChat.Tactical.AmbientMinSpeechGapSec = 60
+
+# OllamaChat.Tactical.AmbientMinEmoteGapSec
+#     Description: Minimum seconds between bot_emote actions per bot.
+#     Default:     45
+OllamaChat.Tactical.AmbientMinEmoteGapSec = 45
+
+# OllamaChat.Tactical.AmbientMaxVisibleActionsPerMinute
+#     Description: Per-bot cap for visible ambient actions in any rolling
+#                  minute. Includes emotes and local speech. 0 = uncapped.
+#     Default:     2
+OllamaChat.Tactical.AmbientMaxVisibleActionsPerMinute = 2
+
+# OllamaChat.Tactical.AmbientEventReactionChance
+#     Description: Percent chance that a recent gameplay event near the bot is
+#                  exposed to the tactical model as recent_event_* context.
+#                  This replaces the deprecated EventChatter *_Chance keys.
+#     Default:     35
+OllamaChat.Tactical.AmbientEventReactionChance = 35
+
+# OllamaChat.Tactical.AutoEnrollNearbyBots
+#     Description: When enabled, tactical ticks also cover nearby playerbots
+#                  that are within Tactical.NearbyBotRadius of a whitelisted
+#                  human, even when they are not listed in Tactical.BotGUIDs.
+#                  This lets the party feel alive without hand-maintaining every
+#                  bot GUID.
+#     Default:     1
+OllamaChat.Tactical.AutoEnrollNearbyBots = 1
+
+# OllamaChat.Tactical.NearbyBotMax
+#     Description: Maximum number of runtime auto-enrolled nearby bots per
+#                  tactical heartbeat. Explicit Tactical.BotGUIDs do not count
+#                  against this limit.
+#     Default:     5
+OllamaChat.Tactical.NearbyBotMax = 5
+
+# OllamaChat.Tactical.NearbyBotRadius
+#     Description: Distance from a whitelisted/real human for runtime
+#                  auto-enrollment.
+#     Default:     60.0
+OllamaChat.Tactical.NearbyBotRadius = 60.0
+
+# OllamaChat.Tactical.PromptMaxBytes
+#     Description: Prompt size budget for the tactical call, in bytes.
+#                  Snapshot builder truncates to stay under this.
+#     Default:     2048
+OllamaChat.Tactical.PromptMaxBytes = 2048
+
+# OllamaChat.Tactical.EnableAudit
+#     Description: Persist one row per tactical call to
+#                  mod_ollama_chat_tactical_audit (created by the phase-5
+#                  migration). Keep on in dev; keep on in prod if you want to
+#                  inspect the decision trace.
+#     Default:     1
+OllamaChat.Tactical.EnableAudit = 1
+
+# OllamaChat.Tactical.AuditRetentionDays
+#     Description: Prune audit rows older than this many days. 0 = never prune
+#                  (the table will grow forever).
+#     Default:     7
+OllamaChat.Tactical.AuditRetentionDays = 7
+
+# OllamaChat.Tactical.AllowEscalation
+#     Description: When 1, tactical may emit an `escalate` field in its JSON
+#                  reply. The StrategicEscalationWorker picks it up and fires
+#                  ONE paid gateway call to request a strategic Directive.
+#                  When 0, escalation is disabled entirely — tactical is
+#                  limited to its own decisions (useful for cost lockdown).
+#     Default:     1
+OllamaChat.Tactical.AllowEscalation = 1
+
+# OllamaChat.Tactical.DirectiveMaxTtlSec
+#     Description: Safety clamp on per-bot directive TTLs set by the strategic
+#                  layer via tactical_set_directive. Prevents a stale goal
+#                  from lingering for hours.
+#     Default:     600
+OllamaChat.Tactical.DirectiveMaxTtlSec = 600
+
+# OllamaChat.Tactical.IdlePauseSec
+#     Description: If the human shows no activity (no movement, chat, or
+#                  combat) for this many seconds, tactical emits one
+#                  ping_player and pauses the bot until activity resumes.
+#     Default:     300
+OllamaChat.Tactical.IdlePauseSec = 300
+
+# OllamaChat.Tactical.AllowCombatOverride
+#     Description: When 0 (default), the tactical dispatcher REJECTS combat-
+#                  tactics actions (bot_attack_target, per-tick bot_cast,
+#                  bot_stop_combat, per-tick movement) while the bot is
+#                  InCombat(). Combat is owned by the playerbots engine.
+#                  When 1, tactical may override combat for specific edge
+#                  cases (boss mechanics, focused CC). Not recommended.
+#     Default:     0
+OllamaChat.Tactical.AllowCombatOverride = 0
+
+# OllamaChat.Tactical.RequireConfirmationFor
+#     Description: Comma-separated list of action names that require explicit
+#                  HITL approval in chat before the dispatcher executes. For
+#                  each listed action, tactical must first ask the human and
+#                  wait ConfirmationTimeoutSec for an "OK"; timeout = abort.
+#                  Default is the "loose" preset: only long-tail / permanent
+#                  moves require a handshake. Combat buffs, positioning, and
+#                  social actions fire silently.
+#     Default:     "bot_accept_quest,bot_abandon_quest,bot_choose_quest_reward,bot_equip_item,bot_unequip_item,bot_use_item,bot_destroy_item,bot_set_home,bot_bank_deposit,bot_bank_withdraw,bot_guild_bank_deposit,bot_guild_bank_withdraw,bot_mail_send,bot_yell"
+OllamaChat.Tactical.RequireConfirmationFor = "bot_accept_quest,bot_abandon_quest,bot_choose_quest_reward,bot_equip_item,bot_unequip_item,bot_use_item,bot_destroy_item,bot_set_home,bot_bank_deposit,bot_bank_withdraw,bot_guild_bank_deposit,bot_guild_bank_withdraw,bot_mail_send,bot_yell"
+
+# OllamaChat.Tactical.ConfirmationTimeoutSec
+#     Description: How long the HITL gate waits for a human "OK" before
+#                  aborting a confirmation-required action, in seconds.
+#     Default:     10
+OllamaChat.Tactical.ConfirmationTimeoutSec = 10
+
+###############################################################################
+# Strategic escalation (paid gateway) — purely reactive, never on a timer
+#
+# When the tactical model emits `escalate` in its JSON reply, the
+# StrategicEscalationWorker wakes (condvar-signalled, otherwise idle), fires ONE
+# gateway call, and expects the response to call tactical_set_directive via
+# tool_use. No scheduler, no polling, no diff-sampler for tactical bots.
+###############################################################################
+
+# OllamaChat.Strategic.SuppressLeaderTickForTacticalBots
+#     Description: When 1 (default), the existing Tier-10 GatewayLeaderTick
+#                  proactive sampling SKIPS bots whose GUID is in
+#                  Tactical.BotGUIDs — for those bots, strategic decisions are
+#                  driven exclusively by tactical escalation and human chat.
+#                  Non-tactical bots keep their existing leader-tick behavior
+#                  unchanged.
+#     Default:     1
+OllamaChat.Strategic.SuppressLeaderTickForTacticalBots = 1
+
+# OllamaChat.Strategic.MaxEscalationsPerBotPerHour
+#     Description: HARD cap on paid gateway calls per bot per hour triggered by
+#                  tactical escalation. Over-cap escalations are dropped; the
+#                  tactical loop continues playing on its current directive.
+#     Default:     6
+OllamaChat.Strategic.MaxEscalationsPerBotPerHour = 6
+
+# OllamaChat.Strategic.QueueMaxSize
+#     Description: Maximum pending escalations buffered in the queue. On
+#                  overflow, the oldest entry is dropped (newer context wins).
+#     Default:     32
+OllamaChat.Strategic.QueueMaxSize = 32
+
+# OllamaChat.Strategic.WorkerThreads
+#     Description: Number of StrategicEscalationWorker threads. 1 is fine for
+#                  any realistic fleet size — escalations are rare and each
+#                  gateway call is already bounded by its own timeout.
+#     Default:     1
+OllamaChat.Strategic.WorkerThreads = 1
+
+# OllamaChat.Strategic.EscalationCooldownSec
+#     Description: Minimum gap between paid gateway calls for the same bot, in
+#                  seconds. Secondary brake on top of the hour cap.
+#     Default:     30
+OllamaChat.Strategic.EscalationCooldownSec = 30
+
+# ============================================================================
+# Proactive Leader Bot (feature 002)
+#
+# Inverts the leader/follower dynamic: a designated gateway leader bot opens
+# the conversation by proposing a concrete quest/dungeon, waits for explicit
+# player approval, executes via existing playerbot primitives, and stays in
+# proximity. Idle nudges fill silence without spamming.
+#
+# Default: OFF (opt-in). Enable per-server by flipping Proactive.Enable = 1
+# AND keeping Tactical.Enable = 1 + Tactical.HumanPresenceRequired = 1.
+#
+# Full design: specs/002-proactive-leader-bot/spec.md
+# Runbook:     docs/proactive-leader.md
+# ============================================================================
+
+# OllamaChat.Proactive.Enable
+#     Description: Master kill switch. When 0, every proactive code path is a
+#                  no-op and no audit row is written. When 1, the heartbeat
+#                  inside the tactical tick begins evaluating proposals for
+#                  whitelisted-online players.
+#     Default:     0
+OllamaChat.Proactive.Enable = 0
+
+# OllamaChat.Proactive.ProposalCooldownSec
+#     Description: Minimum gap between consecutive proposals to the same
+#                  player, in seconds.
+#     Default:     120
+OllamaChat.Proactive.ProposalCooldownSec = 120
+
+# OllamaChat.Proactive.FirstProposalDelaySec
+#     Description: Wait after player login before opening the first proposal,
+#                  in seconds. Gives the player time to load in.
+#     Default:     15
+OllamaChat.Proactive.FirstProposalDelaySec = 15
+
+# OllamaChat.Proactive.IdleThresholdSec
+#     Description: Player-idle threshold (no movement / chat / quest event)
+#                  before an idle nudge becomes eligible, in seconds.
+#     Default:     180
+OllamaChat.Proactive.IdleThresholdSec = 180
+
+# OllamaChat.Proactive.IdleNudgeCooldownSec
+#     Description: Minimum gap between consecutive idle nudges, in seconds.
+#     Default:     300
+OllamaChat.Proactive.IdleNudgeCooldownSec = 300
+
+# OllamaChat.Proactive.IdleNudgeMaxPerSession
+#     Description: Self-silence after N consecutive ignored idle nudges in
+#                  one session. 0 = never nudge.
+#     Default:     3
+OllamaChat.Proactive.IdleNudgeMaxPerSession = 3
+
+# OllamaChat.Proactive.ProposalMaxPerSession
+#     Description: Self-silence the propose loop after N consecutive expired
+#                  (unanswered) proposals in one session. Counter resets on
+#                  any player chat / quest turn-in / zone change — wakes a
+#                  silenced loop the moment the player engages with the
+#                  world. Proposal analogue of IdleNudgeMaxPerSession
+#                  (FR-023). 0 = never self-silence.
+#     Default:     5
+OllamaChat.Proactive.ProposalMaxPerSession = 5
+
+# OllamaChat.Proactive.ProximityYards
+#     Description: 3D-distance threshold beyond which the leader bot stops
+#                  travel and waits for the player.
+#     Default:     60.0
+OllamaChat.Proactive.ProximityYards = 60.0
+
+# OllamaChat.Proactive.ProximityWarnCooldownSec
+#     Description: Minimum gap between consecutive "you coming?" lines, in
+#                  seconds.
+#     Default:     30
+OllamaChat.Proactive.ProximityWarnCooldownSec = 30
+
+# OllamaChat.Proactive.ActivityCompleteTimeoutSec
+#     Description: Hard timeout for an executing Activity Plan. After this
+#                  elapses without a completion signal, the bot sends one
+#                  "are we done?" check nudge.
+#     Default:     1800
+OllamaChat.Proactive.ActivityCompleteTimeoutSec = 1800
+
+# OllamaChat.Proactive.ActivityCompleteNudgeWaitSec
+#     Description: After the activity-complete-timeout nudge fires, wait this
+#                  long for an answer before marking the plan aborted.
+#     Default:     120
+OllamaChat.Proactive.ActivityCompleteNudgeWaitSec = 120
+
+# OllamaChat.Proactive.ProposalExpirySec
+#     Description: Open proposal auto-expires if not answered, in seconds.
+#     Default:     600
+OllamaChat.Proactive.ProposalExpirySec = 600
+
+# OllamaChat.Proactive.PreferredVoiceGuid
+#     Description: Optional designated-voice override. 0 = use lowest-guid
+#                  election among leader-capable gateway bots. When set,
+#                  MUST be a guid that also appears in Gateway.BotGUIDs and
+#                  Mcp.Leader.BotGUIDs.
+#     Default:     0
+OllamaChat.Proactive.PreferredVoiceGuid = 0
+
+# OllamaChat.Proactive.ProposerPromptFile
+#     Description: Path to the proposer system prompt that phrases every
+#                  proactive line (proposal, approval ack, idle nudge,
+#                  proximity warn, activity-complete check + ack). When the
+#                  file loads AND OllamaChat.Gateway.Enable = 1 the phrasing is
+#                  generative; with the gateway off, or on an empty/unusable
+#                  gateway response, each line falls back to a short
+#                  deterministic template.
+#                  MUST RESOLVE IF SET. A non-empty path the worldserver cannot
+#                  open logs
+#                    [Ollama Chat Proactive] proposer prompt file not found:
+#                    <path>; disabling feature
+#                  and forces Proactive.Enable to 0 IN-PROCESS for that reload:
+#                  the heartbeat never runs, so there is no proposal, no nudge
+#                  and NO proact_* audit row of any channel (not even
+#                  proact_novoice). That is the contract, not a bug — refuse to
+#                  engage rather than emit broken chat lines
+#                  (specs/002-proactive-leader-bot/contracts/config-keys.md).
+#                  To run the loop WITHOUT generative phrasing, set this key to
+#                  "" (empty) — that path logs "proposer prompt file path
+#                  empty; using deterministic fallback phrasing" and keeps the
+#                  loop enabled. A relative path resolves against the
+#                  worldserver working directory.
+#     Default:     modules/mod-ollama-chat/prompts/proactive_proposer.md
+OllamaChat.Proactive.ProposerPromptFile = "modules/mod-ollama-chat/prompts/proactive_proposer.md"
+
+# OllamaChat.Proactive.MaxQuestRankSearch
+#     Description: Cap on how many in-log / in-zone quest candidates the
+#                  ranking step considers per tick. Higher values = more
+#                  varied proposals but more DB work per heartbeat.
+#     Default:     50
+OllamaChat.Proactive.MaxQuestRankSearch = 50
+
+# OllamaChat.Proactive.DungeonCandidates
+#     Description: Optional comma-separated whitelist of dungeon mapIds to
+#                  ever propose. Empty = no whitelist (all level-appropriate
+#                  dungeons in scope). Use this to pin the bot to a specific
+#                  set during testing (e.g. "43,109" for WC + ST).
+#     Default:     (empty)
+OllamaChat.Proactive.DungeonCandidates = ""
+
+# OllamaChat.Proactive.EnableAudit
+#     Description: Persist every proactive state transition and chat line to
+#                  mod_ollama_chat_gateway_audit (source_channel = 'proact_*').
+#                  Independent of OllamaChat.Gateway.EnableAudit — proactive
+#                  owns its own toggle so the audit-driven self-improvement
+#                  loop (cron-state/playbooks/wow-proactive.md) works on
+#                  deployments that keep gateway-wide audit off for cost.
+#                  Source the schema: data/sql/characters/base/2026_04_18_gateway_audit.sql
+#     Default:     1 (true)
+OllamaChat.Proactive.EnableAudit = 1
+
+# OllamaChat.Proactive.LevelUpCongratsEnable
+#     Description: Send a short deterministic-only congratulation line when a
+#                  whitelisted human player levels up in-play (never fires at
+#                  character creation). Zero-cost — no LLM call, no gateway
+#                  round-trip, always uses DeterministicPhrasing.
+#     Default:     1 (true)
+OllamaChat.Proactive.LevelUpCongratsEnable = 1
+
+# OllamaChat.Proactive.LevelUpCongratsCooldownSec
+#     Description: Minimum seconds between level-up congratulation lines per
+#                  (player, elected-voice bot). Guards a rapid multi-level
+#                  burst (rested-XP dump, quest-turn-in chain, GM `.levelup`)
+#                  from spamming the line.
+#     Default:     60
+OllamaChat.Proactive.LevelUpCongratsCooldownSec = 60
+
+# OllamaChat.Proactive.NoVoiceAuditEnable
+#     Description: Write a diagnostic `proact_novoice` audit row when the
+#                  heartbeat has to skip a whitelisted player because no
+#                  designated voice could be elected (no leader-capable bot on
+#                  that player's map, none in world, none configured, or the
+#                  player is itself the only leader bot). Emits NO chat line and
+#                  makes NO LLM call — it only records WHY the proactive loop
+#                  stayed silent, which is otherwise invisible. Recover the
+#                  reason from `request_chars`: 19 = noLeadersConfigured,
+#                  16 = noLeadersInWorld, 13 = noLeaderOnMap, 8 = selfOnly.
+#     Default:     1 (true)
+OllamaChat.Proactive.NoVoiceAuditEnable = 1
+
+# OllamaChat.Proactive.NoVoiceAuditCooldownSec
+#     Description: Minimum seconds between `proact_novoice` rows per player.
+#                  A permanently voice-less fleet would otherwise write one row
+#                  per player per heartbeat (~8.6k rows/player/day at the 10s
+#                  tactical tick) and swamp the audit table.
+#     Default:     300
+OllamaChat.Proactive.NoVoiceAuditCooldownSec = 300
+
+# ----------------------------------------------------------------------------
+# Proactive — LLM tiers (Phase A: intent classifier).
+#
+# Phase A adds a local-Ollama intent classifier in front of the deterministic
+# substring matcher inside ClassifyPlayerMessage. Direct-command tokens
+# ("follow me", "stay", "attack" ...) still short-circuit in C++ before any
+# LLM round-trip. On HTTP timeout / parse error / low confidence the C++
+# substring matcher takes over, so the loop keeps working even if Ollama is
+# down.
+#
+# Reuses the same local Ollama endpoint as Gateway.OllamaClassifier.* so one
+# Ollama serves both prompts.
+# ----------------------------------------------------------------------------
+
+# OllamaChat.ProactiveIntent.Enable
+#     Description: Toggle the local-Ollama intent classifier (Phase A). When 0,
+#                  ClassifyPlayerMessage falls back to the original
+#                  deterministic substring matcher (the v1 implementation).
+#     Default:     1
+OllamaChat.ProactiveIntent.Enable = 1
+
+# OllamaChat.ProactiveIntent.PromptFile
+#     Description: Path to the intent classifier prompt. Contract is in the
+#                  file header — JSON in, JSON out
+#                  ({"intent":"approve|reject|done|other","confidence":0.0}).
+#     Default:     modules/mod-ollama-chat/prompts/proactive_intent.md
+OllamaChat.ProactiveIntent.PromptFile = "modules/mod-ollama-chat/prompts/proactive_intent.md"
+
+# OllamaChat.ProactiveIntent.MinConfidence
+#     Description: Minimum classifier confidence (0.0-1.0) to accept the LLM's
+#                  label. Below this the C++ substring matcher is consulted.
+#     Default:     0.7
+OllamaChat.ProactiveIntent.MinConfidence = 0.7
+
+# OllamaChat.ProactiveIntent.TimeoutMs
+#     Description: HTTP timeout for the classifier in milliseconds. 0 = legacy
+#                  3000ms fallback.
+#     Default:     3000
+OllamaChat.ProactiveIntent.TimeoutMs = 3000
+
+# ----------------------------------------------------------------------------
+# Proactive — LLM tiers (Phase B: gateway planner).
+#
+# Phase B routes proposal decisions through the gateway (paid Claude). When
+# enabled, after the C++ side picks a candidate via SelectCandidateForPlayer,
+# the planner reads an enriched snapshot (player combat / hpPct / idleSec,
+# recentRejectedCount, sessionAgeSec) and either approves the proposal +
+# writes the chat line, or vetoes the tick (`wait`).
+#
+# Default OFF — paid gateway calls. A `wait` verdict consumes the normal
+# proposal cooldown so the agent can't be queried more than once per
+# Proactive.ProposalCooldownSec per (bot, player).
+#
+# Fallback: any failure (gateway down / parse error / Unset decision) falls
+# through to the deterministic SelectCandidateForPlayer + PhraseLine path
+# that shipped in v1.
+# ----------------------------------------------------------------------------
+
+# OllamaChat.ProactivePlanner.Enable
+#     Description: Toggle the gateway planner (Phase B). When 0, EvaluateTick
+#                  uses the v1 deterministic candidate-select + phrase-line
+#                  path unchanged.
+#     Default:     0
+OllamaChat.ProactivePlanner.Enable = 0
+
+# OllamaChat.ProactivePlanner.PromptFile
+#     Description: Path to the planner system prompt. Contract is in the file
+#                  header — JSON snapshot in, JSON
+#                  ({"decision":"propose|wait","line":"..."}) out.
+#     Default:     modules/mod-ollama-chat/prompts/proactive_planner.md
+OllamaChat.ProactivePlanner.PromptFile = "modules/mod-ollama-chat/prompts/proactive_planner.md"
+
+# ----------------------------------------------------------------------------
+# Proactive — LLM tiers (Phase C: local-Ollama tick gate).
+#
+# Phase C inserts a cheap local-Ollama check between cooldown gates and the
+# (paid) planner. The gate reads a small snapshot (player combat / hpPct /
+# idleSec, recentRejectedCount, sessionAgeSec, lastProposalAgoSec) and
+# returns one verb: `propose` (proceed) or `wait` (skip this tick).
+#
+# Throttled by IntervalSec so even a 10s heartbeat queries Ollama at most
+# twice per minute per (bot, player). A `wait` verdict does NOT consume
+# the proposal cooldown — the throttle is the cost control for Ollama,
+# and the proposal cooldown only fires when we actually emit.
+#
+# Default OFF — bot-spam risk requires deliberate opt-in. Any failure
+# (disabled / HTTP timeout / parse error / sub-threshold confidence) falls
+# through to the next gate; the existing C++ + planner path is the
+# unconditional safety net.
+# ----------------------------------------------------------------------------
+
+# OllamaChat.ProactiveTickGate.Enable
+#     Description: Toggle the local-Ollama tick gate (Phase C). When 0,
+#                  EvaluateTickLocked proceeds straight to candidate select +
+#                  planner (or its fallback).
+#     Default:     0
+OllamaChat.ProactiveTickGate.Enable = 0
+
+# OllamaChat.ProactiveTickGate.PromptFile
+#     Description: Path to the tick-gate prompt. Contract is in the file
+#                  header — small JSON snapshot in,
+#                  {"action":"propose|wait","confidence":0.0} out.
+#     Default:     modules/mod-ollama-chat/prompts/proactive_tick_gate.md
+OllamaChat.ProactiveTickGate.PromptFile = "modules/mod-ollama-chat/prompts/proactive_tick_gate.md"
+
+# OllamaChat.ProactiveTickGate.IntervalSec
+#     Description: Minimum seconds between gate calls per (bot, player).
+#                  Throttle to keep Ollama call rate bounded even on a 10s
+#                  heartbeat. With 30s, max 2 calls/min/player.
+#     Default:     30
+OllamaChat.ProactiveTickGate.IntervalSec = 30
+
+# OllamaChat.ProactiveTickGate.TimeoutMs
+#     Description: HTTP timeout for the gate in milliseconds. 0 = legacy
+#                  2000ms fallback.
+#     Default:     2000
+OllamaChat.ProactiveTickGate.TimeoutMs = 2000
+
+# OllamaChat.ProactiveTickGate.MinConfidence
+#     Description: Minimum gate confidence (0.0-1.0) to honor a `wait`
+#                  verdict. Below this the gate's vote is ignored and the
+#                  caller falls through to candidate select + planner.
+#     Default:     0.6
+OllamaChat.ProactiveTickGate.MinConfidence = 0.6
+
+###################################################################################################
+# JEV DECISION TIER (OllamaChat.Jev.*)
+#
+#     TypeSafe's System One model ("jev") in front of the module's DECISION-shaped
+#     fast paths: the gateway command classifier, the proactive intent classifier,
+#     the proactive tick-gate and the proactive planner's veto. jev returns typed
+#     answers with calibrated probabilities (a choice + confidence), never text —
+#     so every path that must SAY something stays on an LLM, and every path that
+#     must DECIDE something asks jev first, then falls through to the existing
+#     DeepSeek/LlmWire call, then to the deterministic code. Each site is gated by
+#     its own flag AND its own MinConfidence; a low-confidence jev answer is a
+#     fall-through, never an action.
+#
+#     Access: OpenRouter's Decisions API (POST /api/alpha/decisions, model
+#     typesafe/jev-1.13) speaks TypeSafe's native wire format, so the same body
+#     also works against https://api.typesafe.ai/v1/systemone with a native key
+#     and model "jev-1.13.0". If your server's egress cannot reach OpenRouter,
+#     the Proxy knobs route the calls through an HTTP proxy. A dead or misconfigured proxy just opens the jev-side breaker and every
+#     path stays on its LLM tier.
+#
+#     Thresholds: jev's confidence is derived from the probability distribution
+#     (calibrated), NOT a model's self-report like the legacy MinConfidence knobs,
+#     so the numbers do not carry over — read them off tests/jev/bench_jev.py.
+###################################################################################################
+
+# OllamaChat.Jev.Enable
+#     Description: Master switch. 0 = the whole tier is inert (no requests, no
+#                  behaviour change). Requires ApiKey + Url + Model to be usable.
+#     Default:     0
+OllamaChat.Jev.Enable = 0
+
+# OllamaChat.Jev.Url
+#     Description: Decisions endpoint. TypeSafe native (default; reachable from game-host
+#                  directly, ~0.3 s RTT) or OpenRouter's Decisions API
+#                  (https://openrouter.ai/api/alpha/decisions — geo-blocked from game-host,
+#                  needs Jev.Proxy). Same request body either way.
+#     Default:     https://api.typesafe.ai/v1/systemone
+OllamaChat.Jev.Url = "https://api.typesafe.ai/v1/systemone"
+
+# OllamaChat.Jev.Model
+#     Description: Pin a VERSIONED id — thresholds are calibrated per model.
+#                  TypeSafe native: jev-1.13.0. OpenRouter: typesafe/jev-1.13
+#                  (jev-latest is rejected there).
+#     Default:     jev-1.13.0
+OllamaChat.Jev.Model = "jev-1.13.0"
+
+# OllamaChat.Jev.ApiKey
+#     Description: Bearer token for the Url above (a TypeSafe key `apikey_…`, or an
+#                  OpenRouter key). Live value only in the host bind-mount conf.
+#     Default:     ""
+OllamaChat.Jev.ApiKey = ""
+
+# OllamaChat.Jev.Proxy
+#     Description: Optional HTTP proxy "host:port" (or "http://host:port") the
+#                  jev calls go through — only needed for the OpenRouter route
+#                  (geo-blocked from game-host); a gluetun container's HTTPPROXY
+#                  published on the LAN. Empty = direct (the native default).
+#     Default:     ""
+OllamaChat.Jev.Proxy = ""
+
+# OllamaChat.Jev.ProxyUser / OllamaChat.Jev.ProxyPassword
+#     Description: Basic-auth credentials for the proxy, when it requires them.
+#     Default:     ""
+OllamaChat.Jev.ProxyUser = ""
+OllamaChat.Jev.ProxyPassword = ""
+
+# OllamaChat.Jev.TimeoutMs
+#     Description: Per-call cap in milliseconds. Each call site further clamps
+#                  it to its own chain's remaining budget (intent 1000, tick-gate
+#                  1200, classifier/planner 1500) so a jev miss still leaves room
+#                  for the LLM tier. Measured 2026-09-20 via a proxy exit:
+#                  ~0.9-1.3 s round trip.
+#     Default:     1500
+OllamaChat.Jev.TimeoutMs = 1500
+
+# OllamaChat.Jev.MaxConcurrent
+#     Description: Persistent HTTP client pool size (keep-alive; leased one call
+#                  at a time). A saturated pool is a fast fall-through (200 ms).
+#     Default:     2
+OllamaChat.Jev.MaxConcurrent = 2
+
+# OllamaChat.Jev.BreakerCooldownSec
+#     Description: After 3 consecutive transport/HTTP failures the jev-side
+#                  breaker opens for this many seconds and every site skips
+#                  straight to its LLM tier at zero cost.
+#     Default:     60
+OllamaChat.Jev.BreakerCooldownSec = 60
+
+# OllamaChat.Jev.QuestionsFile
+#     Description: Question wording (instructions + criteria) per site. The
+#                  option SETS come from the live C++ allowlists, never from the
+#                  file. Re-read on config_reload.
+#     Default:     modules/mod-ollama-chat/prompts/jev_questions.json
+OllamaChat.Jev.QuestionsFile = "modules/mod-ollama-chat/prompts/jev_questions.json"
+
+# OllamaChat.Jev.Classifier.Enable / .MinConfidence
+#     Description: Site A — the gateway command classifier
+#                  (Gateway.OllamaClassifier.*). jev picks the tool + raw
+#                  command / icon / loot mode / pet stance from the chat line;
+#                  actions needing free text (say/yell, item names, invites)
+#                  fall through to the LLM classifier tier when
+#                  Gateway.OllamaClassifier.Enable=1, otherwise to the gateway.
+#                  Lines longer than Gateway.Classifier.MaxWords skip both.
+#     Default:     0 / 0.8 (0.6 before PR 4; the missing-key default was 0.7)
+OllamaChat.Jev.Classifier.Enable = 0
+OllamaChat.Jev.Classifier.MinConfidence = 0.8
+
+# OllamaChat.Jev.ProactiveIntent.Enable / .MinConfidence
+#     Description: Site C — proactive approve/reject/done/other. Runs on the
+#                  world thread inside the chat hook, so it is capped at 1000 ms.
+#     Default:     0 / 0.8
+OllamaChat.Jev.ProactiveIntent.Enable = 0
+OllamaChat.Jev.ProactiveIntent.MinConfidence = 0.8
+
+# OllamaChat.Jev.ProactiveTickGate.Enable / .MinConfidence
+#     Description: Site D — proactive propose/wait gate (needs
+#                  ProactiveTickGate.Enable=1 too; same throttle applies).
+#     Default:     0 / 0.6
+OllamaChat.Jev.ProactiveTickGate.Enable = 0
+OllamaChat.Jev.ProactiveTickGate.MinConfidence = 0.6
+
+# OllamaChat.Jev.ProactivePlanner.Enable / .MinConfidence
+#     Description: Site E — the planner's propose/wait DECISION (needs
+#                  ProactivePlanner.Enable=1 too). A confident `wait` skips the
+#                  paid gateway call entirely; `propose` still asks the gateway
+#                  to write the line.
+#     Default:     0 / 0.6
+OllamaChat.Jev.ProactivePlanner.Enable = 0
+OllamaChat.Jev.ProactivePlanner.MinConfidence = 0.6
+
+# OllamaChat.Jev.Tactical.Enable / .MinConfidence / .EscalateMin
+#     Description: Site B (PR 2) — the tactical executor's per-tick action pick,
+#                  as a FUNNEL: code prunes the menu to the jev-eligible actions
+#                  that are dispatchable this tick (registry-validated, combat/
+#                  HITL/dead-alive rules applied) + `other`; jev picks one in ~1 s;
+#                  `other`, low confidence or any failure hands the tick to the
+#                  LlmWire tier (DeepSeek) with the remaining budget, exactly as
+#                  today. Free-text / targeted / arg-taking actions (bot_say,
+#                  whisper_player, bot_cast, bot_move_to, squad orders, ...) are
+#                  never jev-eligible. EscalateMin is the separate calibrated gate
+#                  for the `escalate` yes/no (never together with an emote).
+#                  Per-bot canary: `"jev": true|false` in Tactical.BotOverridesJsonFile
+#                  entries (unset = follow this flag; Jev.Enable=0 wins over all).
+#     Default:     0 / 0.6 / 0.8
+OllamaChat.Jev.Tactical.Enable = 0
+OllamaChat.Jev.Tactical.MinConfidence = 0.6
+OllamaChat.Jev.Tactical.EscalateMin = 0.8
+
+# OllamaChat.Jev.Playbook.Enable / .MinRelevance / .MinRows / .MaxRows
+#     Description: Leader playbook relevance filter (PR 3). Mcp.Leader.SystemPromptFile
+#                  (prompts/gateway_leader.md, ~200 KB, ~78 workflow rows) rides in
+#                  EVERY leader gateway request. With this on, each player message
+#                  first goes to jev with one yes/no per row (one request, ~1-2 s,
+#                  ~5k input tokens) and only the rows with P(relevant) >= MinRelevance
+#                  are sent — at least MinRows (top-N; 0 = header+footer only when
+#                  nothing is relevant), at most MaxRows; header and footer always.
+#                  Any jev failure sends the full playbook as before.
+#                  Autonomous leader ticks (no human message) always get the full text.
+#     Default:     0 / 0.3 / 4 / 12 / 4000 (TimeoutMs — measured 2.0-2.8 s per
+#                  78-row request; it runs before a 5-20 s gateway call)
+OllamaChat.Jev.Playbook.Enable = 0
+OllamaChat.Jev.Playbook.MinRelevance = 0.3
+OllamaChat.Jev.Playbook.MinRows = 4
+OllamaChat.Jev.Playbook.MaxRows = 12
+OllamaChat.Jev.Playbook.TimeoutMs = 4000

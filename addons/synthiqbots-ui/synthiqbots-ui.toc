@@ -1,0 +1,42 @@
+## Interface: 30300
+## Version: 2.1.0
+## Title: SynthiqBotsUI
+## Notes: User Interface for Playerbot
+## Author: Nico Löbbert
+## SavedVariablesPerCharacter: SynthiqBotsUISave
+## SavedVariables: SynthiqBotsUIGlobalSave, SynthiqBotsUIResults
+
+SynthiqBotsUI.lua
+SynthiqBotsUILanguage-deDE.lua
+SynthiqBotsUILanguage-enGB.lua
+SynthiqBotsUILanguage-enUS.lua
+SynthiqBotsUILanguage-frFR.lua
+SynthiqBotsUILanguage-zhCN.lua
+SynthiqBotsUILanguage-koKR.lua
+SynthiqBotsUILanguage-ruRU.lua
+SynthiqBotsUILanguage-esES.lua
+SynthiqBotsUIEngine.lua
+SynthiqBotsUIHandler.lua
+SynthiqBotsUIDeathKnight.lua
+SynthiqBotsUIDruid.lua
+SynthiqBotsUIHunter.lua
+SynthiqBotsUIMage.lua
+SynthiqBotsUIPaladin.lua
+SynthiqBotsUIPriest.lua
+SynthiqBotsUIRogue.lua
+SynthiqBotsUIShaman.lua
+SynthiqBotsUIWarlock.lua
+SynthiqBotsUIWarrior.lua
+SynthiqBotsUIEvery.lua
+SynthiqBotsUIStats.lua
+SynthiqBotsUISpell.lua
+SynthiqBotsUIItem.lua
+SynthiqBotsUIInit.lua
+SynthiqBotsUIItemus.lua
+SynthiqBotsUIIconos.lua
+SynthiqBotsUITalent.lua
+SynthiqBotsUIReward.lua
+SynthiqBotsUINecronet.lua
+SynthiqBotsUIRaidus.lua
+SynthiqBotsUIFeedback.lua
+SynthiqBotsUIObserver.lua

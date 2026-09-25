@@ -1,0 +1,8 @@
+# Build-only deps (packaging the desktop app). Not needed to run from source.
+# Install alongside requirements.txt before running packaging/build-*.{sh,ps1}.
+-r requirements.txt
+
+pyinstaller>=6.3
+# macOS DMG packaging. The build script prefers the `create-dmg` CLI (brew
+# install create-dmg); dmgbuild is the pure-Python fallback used in CI.
+dmgbuild>=1.6 ; sys_platform == "darwin"

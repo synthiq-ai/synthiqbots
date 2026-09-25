@@ -1,0 +1,25 @@
+# Runtime deps for the voice-command CLI (voice_command.py) and app (app.py).
+# Install:  pip install -r requirements.txt
+
+# Core (all platforms)
+sounddevice>=0.4.6        # mic capture (wheels bundle PortAudio on mac/win)
+numpy>=1.24
+pynput>=1.7.6            # global push-to-talk hotkey (Windows/Linux; macOS uses a Quartz tap)
+platformdirs>=4.0        # per-user config dir (app)
+requests>=2.28           # MCP + model download (bundles certifi — urllib has no certs when frozen)
+tomli>=2.0 ; python_version < "3.11"
+
+# Desktop app (app.py) only
+customtkinter>=5.2.0
+
+# STT backends — the app ships BOTH; default is whisper.cpp.
+#   whisper.cpp (default, all platforms): self-contained, Metal on Mac, CPU on Win.
+pywhispercpp>=1.2.0
+#   faster-whisper (optional, used only when an NVIDIA CUDA GPU is present —
+#   sub-second on the RTX 5080). CPU also works (int8) but whisper.cpp is simpler.
+faster-whisper>=1.0.0
+
+# Optional TTS (tts.enabled = true)
+#   macOS uses the built-in `say`, Windows uses SAPI5 via PowerShell — no package.
+#   pyttsx3 is only the Linux/other fallback:
+# pyttsx3>=2.90 ; sys_platform != "darwin" and sys_platform != "win32"
