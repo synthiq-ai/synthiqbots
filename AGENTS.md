@@ -55,3 +55,9 @@ A few engine traps worth knowing before you touch the code:
 - Read the relevant source and docs before changing behavior.
 - Write docs for new features under `docs/`.
 - Never commit secrets: tokens, API keys and passwords belong in your local `mod_ollama_chat.conf` / `gateway_overrides.json`, never in `conf/*.dist` or docs.
+
+## Long-term fixes only (operator decision 2026-10-18)
+- Fix the cause, not the symptom. When something is slow, stuck or broken, find the mechanism that causes it and fix that mechanism.
+- Do not ship a hot patch as the fix: no hand wakes, hand unlinks, one-off env or limit raises, manual reruns or copied state as the answer.
+- A one-time unblock is allowed only together with a filed long-term fix (an issue or a PR for the owner, with evidence and a done condition). Say in the report which action is the unblock and which is the fix.
+- The Paperclip Guild is the main case. Send each Guild fix to its owner: homelab (deployment, watchdog, env), Owner·paperclip (fork code), wow-main-bot (personas, review bridge), CTO (work design). The Guild coordinator is the middleman: it finds the cause, briefs the owner and follows the fix to done.
