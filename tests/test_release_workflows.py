@@ -39,7 +39,9 @@ class PublicationPolicyTests(unittest.TestCase):
                 )
 
     def test_only_main_can_publish(self):
-        jobs = workflow("build-voice-command.yml")["jobs"]
+        data = workflow("build-voice-command.yml")
+        self.assertNotIn("github.run_attempt", data["env"]["STAGING_TAG"])
+        jobs = data["jobs"]
         self.assertEqual(jobs["prepare-release"]["if"], PUBLISH_CONDITION)
         self.assertEqual(jobs["release"]["if"], PUBLISH_CONDITION)
         self.assertCountEqual(jobs["release"]["needs"], ["prepare-release", "build"])
@@ -73,7 +75,14 @@ class InstallerTransferTests(unittest.TestCase):
             "args = sys.argv[1:]\n"
             "with open(os.environ['GH_CALLS'], 'a') as log:\n"
             "    log.write(json.dumps(args) + '\\n')\n"
-            "if args[:2] == ['release', 'download']:\n"
+            "if args[:2] == ['release', 'view']:\n"
+            "    if not os.environ.get('EXISTING_STAGING'):\n"
+            "        sys.exit(1)\n"
+            "    print('true')\n"
+            "elif args[:2] == ['release', 'delete']:\n"
+            "    if args[2].startswith('voice-command-build-') and '--cleanup-tag' in args:\n"
+            "        sys.exit(1)  # A draft has no Git tag to delete.\n"
+            "elif args[:2] == ['release', 'download']:\n"
             "    if os.environ.get('FAIL_DOWNLOAD'):\n"
             "        sys.exit(1)\n"
             "    dest = pathlib.Path(args[args.index('--dir') + 1])\n"
@@ -154,6 +163,23 @@ class InstallerTransferTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         deletes = [call[2] for call in calls if call[:2] == ["release", "delete"]]
         self.assertNotIn(self.env["STAGING_TAG"], deletes)
+
+    def run_preparation(self):
+        prepare = workflow("build-voice-command.yml")["jobs"]["prepare-release"]
+        self.env["GITHUB_RUN_ID"] = "test"
+        result = subprocess.run(
+            ["bash", "-c", step(prepare, "Create staging release")["run"]],
+            cwd=self.root, env=self.env, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return [json.loads(line)[:2] for line in self.log.read_text().splitlines()]
+
+    def test_initial_build_creates_draft(self):
+        self.assertEqual(self.run_preparation(), [["release", "view"], ["release", "create"]])
+
+    def test_retry_reuses_existing_draft(self):
+        self.env["EXISTING_STAGING"] = "1"
+        self.assertEqual(self.run_preparation(), [["release", "view"]])
 
 
 if __name__ == "__main__":

@@ -21,7 +21,8 @@ permissions:
 
 env:
   GH_REPO: ${{ github.repository }}
-  STAGING_TAG: voice-command-build-${{ github.run_id }}-${{ github.run_attempt }}
+  # Failed-job retries reuse uploads from successful matrix jobs.
+  STAGING_TAG: voice-command-build-${{ github.run_id }}
 
 concurrency:
   # Let a running publication finish before the next one starts.
@@ -40,6 +41,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          if gh release view "$STAGING_TAG" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx true; then
+            exit 0
+          fi
           gh release create "$STAGING_TAG" \
             --target "$GITHUB_SHA" \
             --title "Voice-command build $GITHUB_RUN_ID" \
@@ -179,4 +183,5 @@ jobs:
             --notes-file /tmp/notes.md \
             --prerelease \
             dist/*
-          gh release delete "$STAGING_TAG" --yes --cleanup-tag
+          # Draft releases have no Git tag.
+          gh release delete "$STAGING_TAG" --yes
