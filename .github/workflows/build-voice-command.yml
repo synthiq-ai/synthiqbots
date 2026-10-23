@@ -16,17 +16,45 @@ on:
   workflow_dispatch:
 
 permissions:
-  # contents: write lets the release job recreate the rolling tag.
+  # Release jobs and matrix uploads use the repository token.
   contents: write
 
+env:
+  GH_REPO: ${{ github.repository }}
+  # Failed-job retries reuse uploads from successful matrix jobs.
+  STAGING_TAG: voice-command-build-${{ github.run_id }}
+
 concurrency:
-  # Newer builds win; don't pile up parallel installer publishes.
+  # Let a running publication finish before the next one starts.
   group: build-voice-command-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  prepare-release:
+    name: Create draft for installer transfer
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create staging release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$STAGING_TAG" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx true; then
+            exit 0
+          fi
+          gh release create "$STAGING_TAG" \
+            --target "$GITHUB_SHA" \
+            --title "Voice-command build $GITHUB_RUN_ID" \
+            --notes "Installer staging for workflow run $GITHUB_RUN_ID." \
+            --draft
+
   build:
     name: Package (${{ matrix.os }})
+    needs: prepare-release
+    # Check builds must run when publication is skipped.
+    if: ${{ !cancelled() && (needs.prepare-release.result == 'success' || needs.prepare-release.result == 'skipped') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     strategy:
@@ -34,10 +62,8 @@ jobs:
       matrix:
         include:
           - os: macos-14
-            artifact: voice-command-macos
             out: WoW-Voice-Command.dmg
           - os: windows-latest
-            artifact: voice-command-windows
             out: WoWVoiceCommand.exe
     defaults:
       run:
@@ -74,7 +100,7 @@ jobs:
 
       - name: Compute SHA256 (macOS)
         if: runner.os == 'macOS'
-        run: shasum -a 256 "dist/${{ matrix.out }}" | tee "dist/${{ matrix.out }}.sha256"
+        run: (cd dist && shasum -a 256 "${{ matrix.out }}") | tee "dist/${{ matrix.out }}.sha256"
 
       - name: Compute SHA256 (Windows)
         if: runner.os == 'Windows'
@@ -83,35 +109,46 @@ jobs:
           $h = Get-FileHash "dist/${{ matrix.out }}" -Algorithm SHA256
           "$($h.Hash.ToLower())  ${{ matrix.out }}" | Tee-Object "dist/${{ matrix.out }}.sha256"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: |
-            tools/voice-command/dist/${{ matrix.out }}
-            tools/voice-command/dist/${{ matrix.out }}.sha256
-          retention-days: 90
+      - name: Upload installers to staging release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "$STAGING_TAG" \
+            "dist/${{ matrix.out }}" \
+            "dist/${{ matrix.out }}.sha256" --clobber
 
   release:
     name: Publish rolling release
-    needs: build
-    if: github.event_name == 'push'
+    needs: [prepare-release, build]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download built installers
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release download "$STAGING_TAG" --dir dist \
+            --pattern WoW-Voice-Command.dmg \
+            --pattern WoW-Voice-Command.dmg.sha256 \
+            --pattern WoWVoiceCommand.exe \
+            --pattern WoWVoiceCommand.exe.sha256
+          cd dist
+          # Require both installers and check each checksum before publication.
+          test -s WoW-Voice-Command.dmg
+          test -s WoWVoiceCommand.exe
+          test -s WoW-Voice-Command.dmg.sha256
+          test -s WoWVoiceCommand.exe.sha256
+          sha256sum --check WoW-Voice-Command.dmg.sha256
+          sha256sum --check WoWVoiceCommand.exe.sha256
 
       - name: Stage release assets + notes
         run: |
           set -euo pipefail
-          mkdir -p dist
-          find artifacts -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.sha256' \) \
-            -exec cp {} dist/ \;
           ls -la dist/
           {
             echo "Rolling release built from \`main\` by CI."
@@ -146,3 +183,5 @@ jobs:
             --notes-file /tmp/notes.md \
             --prerelease \
             dist/*
+          # Draft releases have no Git tag.
+          gh release delete "$STAGING_TAG" --yes

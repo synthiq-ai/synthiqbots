@@ -1,0 +1,28 @@
+name: Check release workflows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'tests/test_release_workflows.py'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'tests/test_release_workflows.py'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'PyYAML>=6,<7'
+      - run: python -m unittest discover -s tests -p test_release_workflows.py -v
