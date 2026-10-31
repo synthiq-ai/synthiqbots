@@ -20,9 +20,9 @@ permissions:
   contents: write
 
 concurrency:
-  # Don't pile up parallel rolling-release publishes — newer ones win.
+  # Let a running publication finish before the next one starts.
   group: build-feedback-daemon-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -72,22 +72,8 @@ jobs:
             > feedback-daemon-windows-amd64.exe.sha256
           cat feedback-daemon-windows-amd64.exe.sha256
 
-      - name: Upload as workflow artifact
-        # Always uploaded — gives PR builds a downloadable .exe (90 day retention)
-        # and keeps the push-to-main path covered too in case the release step
-        # has to be diagnosed independently.
-        uses: actions/upload-artifact@v4
-        with:
-          name: feedback-daemon-windows-amd64
-          path: |
-            dist/feedback-daemon-windows-amd64.exe
-            dist/feedback-daemon-windows-amd64.exe.sha256
-            dist/config.example.toml
-            dist/feedback-daemon-README.md
-          retention-days: 90
-
       - name: Stage release notes
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         working-directory: ${{ github.workspace }}
         run: |
           set -euo pipefail
@@ -117,7 +103,7 @@ jobs:
           cat /tmp/release-notes.md
 
       - name: Publish rolling release feedback-daemon-latest
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         working-directory: ${{ github.workspace }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

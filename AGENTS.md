@@ -54,6 +54,9 @@ A few engine traps worth knowing before you touch the code:
 - Check `git status --short` before editing and preserve unrelated changes.
 - Read the relevant source and docs before changing behavior.
 - Write docs for new features under `docs/`.
+- Publish release binaries as GitHub Release assets.
+- Use workflow artifacts only to pass files between jobs. Set `retention-days: 1` for every artifact upload.
+- Upload nothing from builds that only check a pull request.
 - Never commit secrets: tokens, API keys and passwords belong in your local `mod_ollama_chat.conf` / `gateway_overrides.json`, never in `conf/*.dist` or docs.
 
 ## Long-term fixes only (operator decision 2026-10-18)
