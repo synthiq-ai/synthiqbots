@@ -116,6 +116,8 @@ See `tools/voice-command/packaging/` — `build-macos.sh` (DMG) and
 `build-windows.ps1` (EXE), both driving `voice-command.spec` (PyInstaller). The
 CLI usage and pipeline internals are documented in [voice-command.md](voice-command.md).
 
+CI builds the macOS installer on `macos-15`.
+
 ## Build publication
 
 The build workflows publish binaries as GitHub Release assets. They do not upload workflow artifacts.
@@ -129,6 +131,8 @@ After both builds pass, the release job downloads and checks all four assets.
 It then replaces `voice-command-latest` and removes the draft.
 If a build or download fails, the previous rolling release stays available.
 A failed run can retain its draft assets for diagnosis.
+New runs use a different run ID and do not remove drafts from earlier runs.
+Those drafts need separate deletion after diagnosis.
 
 Feedback-daemon publishes its executable, checksum, example configuration, and README directly from its build job.
 The rolling release remains `feedback-daemon-latest`.
